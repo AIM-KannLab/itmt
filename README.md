@@ -3,8 +3,8 @@
 Code repo for the paper: /link
 
 Big thanks to these OS projects:
-# https://github.com/InsightSoftwareConsortium/ITKElastix
-# https://github.com/matthiasnwt/feret
+[ITKElastix]: https://github.com/InsightSoftwareConsortium/ITKElastix
+[Feret]: https://github.com/matthiasnwt/feret
 
 ## Quick Start (single MRI T1 inference)
 1. Clone repo 'git clone'
