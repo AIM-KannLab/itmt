@@ -134,6 +134,8 @@ def icc_masks(slice_csv_path,annotator_1_path, annotator_2_path, output_dir):
         
         if len(image_path1) != 0 and len(image_path2) != 0:
             slice_diff = abs(label1 - label2)
+            dice_diff1 = round(dice_coef(seg_mask1_2d[100:,:], seg_mask2_2d[100:,:]),2)
+            dice_diff2 = round(dice_coef(seg_mask1_2d[:100,:], seg_mask2_2d[:100,:]),2)
             dice_diff = round(dice_coef(seg_mask1_2d, seg_mask2_2d),2)
             iou_diff = round(iou(seg_mask1_2d, seg_mask2_2d),2)
             
@@ -164,7 +166,9 @@ def icc_masks(slice_csv_path,annotator_1_path, annotator_2_path, output_dir):
                   avg_tmt_minf,
                   avg_tmt_minf90)
             
-            results_list.append([patient_id, slice_diff,dice_diff,iou_diff,
+            results_list.append([patient_id, slice_diff,
+                                 dice_diff1,dice_diff2,
+                                 dice_diff,iou_diff,
                   objR_pred_minf_l1,
                   objR_pred_maxf_90_l1,
                   objR_pred_minf_r1,
@@ -180,7 +184,8 @@ def icc_masks(slice_csv_path,annotator_1_path, annotator_2_path, output_dir):
             #break
 
     df=pd.DataFrame(np.asarray(results_list))
-    df.to_csv(output_dir+"icc1.csv", header=["ID", "slice_diff", "dice_diff","iou_diff",
+    df.to_csv(output_dir+"icc_dice1_dice2_healthy.csv", header=["ID", "slice_diff", 'dice_diff1','dice_diff2',
+                                             "dice_diff","iou_diff",
                                              "TM1 minf a1",
                                              "TM1 90 a1",
                                              "TM2 minf a1",
@@ -196,8 +201,8 @@ def icc_masks(slice_csv_path,annotator_1_path, annotator_2_path, output_dir):
     
             
 # measure difference in segmentaion mask
-#icc_masks(metadata_1_path, annotator_1_healthy_path, annotator_2_healthy_path, output_dir)
-icc_masks(metadata_2_path, annotator_1_cancer_path, annotator_2_cancer_path, output_dir)
+icc_masks(metadata_1_path, annotator_1_healthy_path, annotator_2_healthy_path, output_dir)
+#icc_masks(metadata_2_path, annotator_1_cancer_path, annotator_2_cancer_path, output_dir)
 
 # registration agreement 
 

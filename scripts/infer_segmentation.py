@@ -60,14 +60,14 @@ def dice_coef(y_true, y_pred):
 def get_metadata(row, image_dir):
     patient_id, image_path, age, gender = "","","",""
     patient_id = str(row['Filename']).split(".")[0]
-    age =  row['AGE_M'] // 12
-    gender = row['Sex']
+    age =  row['AGE_M'] #// 12 #//12
+    gender =row['Sex']# row['SEX'] #row['Sex']
     path = find_file_in_path(patient_id, os.listdir(image_dir))
     
     patient_id =  patient_id.split("/")[-1]
     path = patient_id.split("/")[-1]    
     scan_folder = image_dir+path
-
+    print(age)
     if os.path.exists(scan_folder):
         for file in os.listdir(scan_folder):
             t = image_dir+path+"/"+file
@@ -93,6 +93,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
     list_true_1,list_true_2, list_true = [],[],[]
     list_pred_1,list_pred_2, list_pred = [],[],[]
     list_csa = []
+    lst_dices = []
     print("Testing n=",len(df_prediction))
     for idx, row in df_prediction.iterrows():
         print(idx)
@@ -206,6 +207,13 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
                 print("Dice score TM1", round(dice_coef(seg_data[:100,:,slice_label],infer_seg_array_3d_1_filtered[:100,:,slice_label]),2))
                 print("Dice score TM2", round(dice_coef(seg_data[100:,:,slice_label],infer_seg_array_3d_2_filtered[100:,:,slice_label]),2))
                 
+                lst_dices.append([patient_id, 
+                                 gender,
+                                 age, 
+                                 slice_label,
+                                 round(dice_coef(seg_data[:100,:,slice_label],infer_seg_array_3d_1_filtered[:100,:,slice_label]),2),
+                                 round(dice_coef(seg_data[100:,:,slice_label],infer_seg_array_3d_2_filtered[100:,:,slice_label]),2)])
+                
                 print("CSA GT TM1 vs Pred", np.sum(seg_data[:100,:,slice_label]), np.sum(infer_seg_array_3d_1_filtered[:100,:,slice_label]))
                 print("CSA GT TM2 vs Pred", np.sum(seg_data[100:,:,slice_label]), np.sum(infer_seg_array_3d_2_filtered[100:,:,slice_label]))
                 
@@ -230,12 +238,20 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
                 #list_pred_2.append(infer_seg_array_3d_2_filtered[100:,:,slice_label])
                 list_pred.append(np.concatenate((infer_seg_array_3d_1_filtered[:100,:,slice_label],infer_seg_array_3d_2_filtered[100:,:,slice_label]),axis=0))
                 
-            gc.collect()         
-
-    print("Mean dice TM:", round(mean_dice_coef(np.asarray(list_true),np.asarray(list_pred)),3))
-    print("Median dice TM :",round(median_dice_coef(np.asarray(list_true),np.asarray(list_pred)),3))
+            gc.collect()   
+            #if idx>2:
+            #    break      
+        
+    #[:,int(crop_line):]
+    print(np.shape(np.asarray(list_true)[:,:,int(crop_line):]))
+    print("Mean dice TM:", round(mean_dice_coef(np.asarray(list_true)[:,:,int(crop_line):],np.asarray(list_pred)[:,:,int(crop_line):]),3))
+    print("Median dice TM :",round(median_dice_coef(np.asarray(list_true)[:,:,int(crop_line):],np.asarray(list_pred)[:,:,int(crop_line):]),3))
     
     df=pd.DataFrame(np.asarray(list_csa))
+    df_dices=pd.DataFrame(np.asarray(lst_dices))
+    df_dices.to_csv("data/dices_healthy.csv", header=["ID","Gender", "Age", "Slice label",
+                                              'Dice1','Dice2'])
+    
     df.to_csv(output_dir+"csa.csv", header=["ID","Gender", "Age", "Slice label",
                                             ## GT
                                             "CSA GT TM1","CSA GT TM2",

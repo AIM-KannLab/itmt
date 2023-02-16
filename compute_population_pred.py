@@ -41,9 +41,9 @@ from scripts.infer_selection import get_slice_number_from_prediction, funcy
 import warnings
 
 #path to ench and registered file
-image_dir = 'data/t1_mris/petfrog_reg_ench/z/' #'data/t1_mris/cbtn_reg_ench/z/' #'data/t1_mris/registered/z/' #'data/z_scored_mris/z_with_pseudo/z/'
-input_annotation_file = 'data/Dataset_petfrog.csv'#"data/Dataset_cbtn.csv" #'data/Dataset_t1_healthy_raw.csv' #'data/all_metadata.csv'
-output_dir = 'data/t1_mris/'
+image_dir = 'data/t1_mris/bch_reg_ench/z/' #'data/t1_mris/cbtn_reg_ench/z/' #'data/t1_mris/registered/z/' #'data/z_scored_mris/z_with_pseudo/z/'
+input_annotation_file = 'data/Dataset_bch.csv'#"data/Dataset_cbtn.csv" #'data/Dataset_t1_healthy_raw.csv' #'data/all_metadata.csv'
+output_dir = 'data/t1_mris/bch_analysis/'
     
 warnings.filterwarnings('ignore')
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -65,7 +65,7 @@ list_csa = []
 def get_metadata(row, image_dir):
     patient_id, image_path, age, gender = "","","",""
     patient_id = str(row['Filename']).split(".")[0]
-    age =  row['AGE_M'] // 12
+    age =  row['AGE_M'] #// 12
     gender = row['SEX']
     dataset = row['dataset']
     path = find_file_in_path(patient_id, os.listdir(image_dir))

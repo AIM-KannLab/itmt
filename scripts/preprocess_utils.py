@@ -390,9 +390,21 @@ if __name__=="__main__":
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/petfrog_reg/',
                                      path_to='data/t1_mris/petfrog_reg_ench/',
                                      input_annotation_file = "data/Dataset_petfrog.csv",
-                                     for_training=False, annotations=False)'''
+                                     for_training=False, annotations=False)
     ## CBTN
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/cbtn_reg/',
                                      path_to='data/t1_mris/cbtn_reg_ench/',
                                      input_annotation_file = "data/Dataset_cbtn.csv",
+                                     for_training=False, annotations=False)
+                                     
+    
+    ## DMG
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/dmg_reg/',
+                                     path_to='data/t1_mris/dmg_reg_ench/',
+                                     input_annotation_file = "data/Dataset_dmg.csv",
+                                     for_training=False, annotations=False)'''
+    ## BCH
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/bch_reg/',
+                                     path_to='data/t1_mris/bch_reg_ench/',
+                                     input_annotation_file = "data/Dataset_bch.csv",
                                      for_training=False, annotations=False)
