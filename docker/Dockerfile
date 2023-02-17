@@ -1,4 +1,5 @@
-# 
+# docker build -t itmt -f Dockerfile .
+#docker run --rm itmt - f FILENAME -o ORG_ID
 FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04
 ENV TZ=US/Eastern
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -21,5 +22,15 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
     wandb jupyter opencv-python  
 
 RUN python3.9 -c "import tensorflow"
+
+COPY scipts /scipts
+COPY golden_image /golden_image
+COPY model_weights /model_weights
+COPY preprocessing /preprocessing
+COPY percentiles_chart_boys.csv /
+COPY percentiles_chart_girls.csv /
+COPY data data/
 COPY main.py /
+COPY predict.py /
+COPY settings.py /
 CMD [ "python3.9", "./main.py" ]
