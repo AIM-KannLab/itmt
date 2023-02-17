@@ -65,8 +65,8 @@ def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
                 min_y,ind_min = y,i
             if y>=max_y:
                 max_y,ind_max = y,i
-        print(min_y,contours[0][ind_min][0])
-        print(max_y,contours[0][ind_max][0])
+        #print(min_y,contours[0][ind_min][0])
+        #print(max_y,contours[0][ind_max][0])
 
         fig, ax = plt.subplots(1,1,figsize=(5,5))
         ax.imshow(img_input, interpolation=None, cmap=plt.cm.Greys_r)
@@ -86,7 +86,7 @@ def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
 def select_template_based_on_age(age):
     for golden_file_path, age_values in age_ranges.items():
         if age_values['min_age'] <= int(age) and int(age) <= age_values['max_age']: 
-            print(golden_file_path)
+            #print(golden_file_path)
             return golden_file_path
         
 def register_to_template(input_image_path, output_path, fixed_image_path,rename_id,create_subfolder=True):
@@ -97,7 +97,7 @@ def register_to_template(input_image_path, output_path, fixed_image_path,rename_
     parameter_object.AddParameterFile('golden_image/mni_templates/Parameters_Rigid.txt')
 
     if "nii" in input_image_path and "._" not in input_image_path:
-        print(input_image_path)
+        #print(input_image_path)
 
         # Call registration function
         try:        
@@ -193,7 +193,7 @@ def predict_itmt(age = 9, gender="M",
     sitk.WriteImage(image3,new_path_to+"/no_z/registered_no_z.nii") 
     cmd_line = "zscore-normalize "+new_path_to+"/no_z/registered_no_z.nii -o "+new_path_to+'/registered_z.nii'
     subprocess.getoutput(cmd_line)     
-    print(cmd_line)
+    #print(cmd_line)
     print("Preprocessing done!")
 
     # load models
@@ -243,7 +243,7 @@ def predict_itmt(age = 9, gender="M",
     img = nib.load(new_path_to+'/registered_z.nii')  
     image_array, affine = img.get_fdata(), img.affine
     infer_seg_array_3d_1,infer_seg_array_3d_2 = np.zeros(image_array.shape),np.zeros(image_array.shape)
-    print(np.asarray(nib.aff2axcodes(affine)))
+    #print(np.asarray(nib.aff2axcodes(affine)))
 
     # rescale image into 512x512 for unet 
     image_array_2d = rescale(image_array[:,15:-21,slice_label], scaling_factor).reshape(1,target_size_unet[0],target_size_unet[1],1) 
@@ -342,6 +342,7 @@ def predict_itmt(age = 9, gender="M",
     CSA_PRED_TM1_line = np.sum(infer_seg_array_3d_1[:100,int(crop_line):,slice_label])
     CSA_PRED_TM2_line = np.sum(infer_seg_array_3d_2[100:,int(crop_line):,slice_label])
     input_tmt = (objL_pred_minf+objR_pred_minf)/2
+    print("Age:",str(age)," Gender:",gender)
     print("iTMT[mm]:", input_tmt)
     
     ## add centiles estimation

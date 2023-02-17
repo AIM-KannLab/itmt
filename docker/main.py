@@ -19,7 +19,7 @@ if __name__ == '__main__':
                         help = 'Path to save results')
     parser.add_argument('--cuda_visible_devices', '-c',type = str, default = '0',
                         help = 'Specify cuda visible devices, default:0')
-    parser.add_argument('--model_weight_path_selection', '-d',type = str, default = 'model_weights/test/brisk-pyramid.hdf5',
+    parser.add_argument('--model_weight_path_selection', '-d',type = str, default = 'model_weights/brisk-pyramid.hdf5',
                         help = 'Slice selection model path')
     parser.add_argument('--model_weight_path_segmentation', '-u',type = str, default = 'model_weights/Top_Segmentation_Model_Weight.hdf5',
                         help = 'Segmentation model path')
