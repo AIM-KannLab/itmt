@@ -167,7 +167,7 @@ def predict_itmt(age = 9, gender="M",
     
     # load image
     threshold = 0.75
-    os.environ['CUDA_VISIBLE_DEVICES'] = cuda_v_devices
+    os.environ['CUDA_VISIBLE_DEVICES'] = cuda_visible_devices
     image, affine = load_nii(img_path)
     print(nib.aff2axcodes(affine))
 
@@ -342,7 +342,7 @@ def predict_itmt(age = 9, gender="M",
     CSA_PRED_TM1_line = np.sum(infer_seg_array_3d_1[:100,int(crop_line):,slice_label])
     CSA_PRED_TM2_line = np.sum(infer_seg_array_3d_2[100:,int(crop_line):,slice_label])
     input_tmt = (objL_pred_minf+objR_pred_minf)/2
-    print("iTMT[mm]:" input_tmt)
+    print("iTMT[mm]:", input_tmt)
     
     ## add centiles estimation
     df_centile_boys = pd.read_csv(df_centile_boys_csv,header=0)
