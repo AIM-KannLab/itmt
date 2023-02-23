@@ -8,8 +8,8 @@ Link to the centiles web-page: /link
 ![Main figure](pics/main.png)
 **Not intended for clinical use.**
 ## Acknowledgements
-[ITKElastix]: https://github.com/InsightSoftwareConsortium/ITKElastix
-[Feret]: https://github.com/matthiasnwt/feret
+* [ITKElastix]https://github.com/InsightSoftwareConsortium/ITKElastix
+* [Feret]https://github.com/matthiasnwt/feret
 
 ## Quick Start - No Docker (single MRI T1 inference)
 1. Clone repo 'git clone'
