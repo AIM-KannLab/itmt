@@ -9,6 +9,7 @@ Link to the centiles web-page: /link
 
 ## Quick Start - No Docker (single MRI T1 inference)
 **Prerequisites: conda, gpu** 
+
 1. Clone repo 'git clone'
 
 2. To create an enviroment, run: 
@@ -36,6 +37,7 @@ Link to the centiles web-page: /link
 
 ## To retrain on your own MRI dataset: 
 **Prerequisites: conda, gpu** 
+
 0. Create enviroment:
 - Clone repo 'git clone'
 - 'conda env create -f environment.yml'
@@ -72,7 +74,7 @@ Link to the centiles web-page: /link
 * [Feret](https://github.com/matthiasnwt/feret)
 
 ### MIT License
-Copyright (c) [2022] [Automated Deep Learning TM-segmentation project]
+Copyright (c) [2023] [Automated Deep Learning TM-segmentation project]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
