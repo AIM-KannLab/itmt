@@ -1,13 +1,16 @@
 # Automated Deep Learning TM-segmentation project
 
-Code repo for the paper: /link
 
-Big thanks to these OS projects:
+Link to the centiles web-page: /link
+**If you publish any work which uses this package, please cite the following publication**: /link
+
+![Main figure](pics/main.png)
+**Not intended for clinical use.**
+## Acknowledgements
 [ITKElastix]: https://github.com/InsightSoftwareConsortium/ITKElastix
-
 [Feret]: https://github.com/matthiasnwt/feret
 
-## Quick Start (single MRI T1 inference)
+## Quick Start - No Docker (single MRI T1 inference)
 1. Clone repo 'git clone'
 
 2. To create an enviroment, run: 
@@ -21,6 +24,16 @@ Big thanks to these OS projects:
 5. Download Weights from /link and place into /path
 
 5. For demo on TM pipeline launch jupyter notebook 'demo_notebook.ipynb' inside conda enviroment
+
+## Quick Start - Docker(single MRI T1 inference)
+1. Clone repo 'git clone'
+
+2. To create a docker:
+'cd docker'
+'docker build -t itmt -f Dockerfile . --no-cache'
+
+3. To run docker:
+'docker run --gpus all -it itmt'
 
 ## To retrain on your own MRI dataset: 
 0. Data preprocessing pipeline:

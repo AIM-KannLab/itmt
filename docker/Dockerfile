@@ -1,5 +1,5 @@
-# docker build -t itmt -f Dockerfile . --no-cache
-#docker run --rm itmt - f FILENAME -o ORG_ID
+#docker build -t itmt -f Dockerfile . --no-cache
+#docker run --gpus all -it itmt
 FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04
 ENV TZ=US/Eastern
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
