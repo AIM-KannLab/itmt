@@ -46,7 +46,7 @@ def get_id_and_path(row, image_dir, nested = False, no_tms=True):
         path=""
         
     scan_folder = image_dir+path
-    #print(patient_id, scan_folder)
+    patient_id=patient_id.split("/")[-1]
     
     for file in os.listdir(scan_folder):
         t = image_dir+path+"/"+file
@@ -242,7 +242,7 @@ def enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to='d
 
     df = pd.read_csv(input_annotation_file,header=0)
     df=df[df['Ok registered? Y/N']=='Y'].reset_index()
-    print(df.shape[0])
+    #print(df.shape[0])
     for idx in range(0, 1):
         print(idx)
         row = df.iloc[idx]
@@ -267,10 +267,16 @@ def z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to=
         print(idx)
         row = df.iloc[idx]
         patient_id, image_path, tm_file, _ = get_id_and_path(row, image_dir, nested=False, no_tms=for_training)
-        print(patient_id, image_path, tm_file)
+        print(patient_id, len(image_path), tm_file, path_to)
+        if not os.path.isdir(path_to+"no_z"):
+            os.mkdir(path_to+"no_z")
+        if not os.path.isdir(path_to+"z"):
+            os.mkdir(path_to+"z")
+            
         if len(image_path)>3:
             image_sitk =  sitk.ReadImage(image_path)
             image_array  = sitk.GetArrayFromImage(image_sitk)
+            print(len(image_array))
             try:
                 image_array = enhance_noN4(image_array)
                 image3 = sitk.GetImageFromArray(image_array)
@@ -317,19 +323,21 @@ def register_to_template(input_image_path, output_path, fixed_image_path,create_
         
 if __name__=="__main__":
     # replace header with ,AGE_M,SEX,SCAN_PATH,Filename,dataset
-    
-    #z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to='data/z_scored_mris/z_with_pseudo/',\
-    #input_annotation_file = 'data/all_metadata.csv')
-    #z_enhance_and_debias_all_in_path(image_dir='data/curated_test/reg_tm_not_corrected/',
-    #                                 path_to='data/curated_test/final_test/',
-    #                                 input_annotation_file = 'data/curated_test/reg_tm_not_corrected/Dataset_test_rescaled.csv',
-    #                                 for_training=True)
-    # all the datasets
-    #z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/registered_not_ench/',
-    #                                 path_to='data/t1_mris/registered/',
-    #                                 input_annotation_file = 'data/Dataset_t1_healthy_raw.csv',
-    #                                 for_training=False,annotations=False)
     '''
+    z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',
+                                    path_to='data/z_scored_mris/z_with_pseudo/',\
+                                    input_annotation_file = 'data/all_metadata.csv')
+                                    
+    z_enhance_and_debias_all_in_path(image_dir='data/curated_test/reg_tm_not_corrected/',
+                                    path_to='data/curated_test/final_test/',
+                                     input_annotation_file = 'data/curated_test/reg_tm_not_corrected/Dataset_test_rescaled.csv',
+                                     for_training=True)
+    # all the datasets
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/registered_not_ench/',
+                                     path_to='data/t1_mris/registered/',
+                                     input_annotation_file = 'data/Dataset_t1_healthy_raw.csv',
+                                     for_training=False,annotations=False)
+    
     #ping 
     # z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/pings_registered/',
                                      path_to='data/t1_mris/pings_ench_reg/',
@@ -395,16 +403,40 @@ if __name__=="__main__":
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/cbtn_reg/',
                                      path_to='data/t1_mris/cbtn_reg_ench/',
                                      input_annotation_file = "data/Dataset_cbtn.csv",
-                                     for_training=False, annotations=False)
-                                     
-    
+                                     for_training=False, annotations=False)                              
     ## DMG
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/dmg_reg/',
                                      path_to='data/t1_mris/dmg_reg_ench/',
                                      input_annotation_file = "data/Dataset_dmg.csv",
-                                     for_training=False, annotations=False)'''
+                                     for_training=False, annotations=False)
     ## BCH
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/bch_reg/',
                                      path_to='data/t1_mris/bch_reg_ench/',
                                      input_annotation_file = "data/Dataset_bch.csv",
+                                     for_training=False, annotations=False)
+    ## BCH long
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/bch_long_reg/',
+                                     path_to='data/t1_mris/bch_long_reg_ench/',
+                                     input_annotation_file = "data/Dataset_bch_long.csv",
+                                     for_training=False, annotations=False)
+    ## 28
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/28_reg/',
+                                     path_to='data/t1_mris/28_reg_ench/',
+                                     input_annotation_file = "data/Dataset_28.csv",
+                                     for_training=False, annotations=False)
+    
+    ## ***************long579
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/long579_reg/',
+                                     path_to='data/t1_mris/long579_reg_ench/',
+                                     input_annotation_file = "data/Dataset_long579.csv",
+                                     for_training=False, annotations=False)
+    ## downscaled2
+    z_enhance_and_debias_all_in_path(image_dir='data/rescaling_experiments/raw_down2_reg/',
+                                     path_to='/media/sda/Anna/TM2_segmentation/data/rescaling_experiments/raw_down2_reg_ench/',
+                                     input_annotation_file = "data/Dataset_down2.csv",
+                                     for_training=False, annotations=False)'''
+                                     
+    z_enhance_and_debias_all_in_path(image_dir='data/rescaling_experiments/raw_down4_reg/',
+                                     path_to='/media/sda/Anna/TM2_segmentation/data/rescaling_experiments/raw_down4_reg_ench/',
+                                     input_annotation_file = "data/Dataset_down4.csv",
                                      for_training=False, annotations=False)

@@ -41,9 +41,11 @@ from scripts.infer_selection import get_slice_number_from_prediction, funcy
 import warnings
 
 #path to ench and registered file
-image_dir = 'data/t1_mris/bch_reg_ench/z/' #'data/t1_mris/cbtn_reg_ench/z/' #'data/t1_mris/registered/z/' #'data/z_scored_mris/z_with_pseudo/z/'
-input_annotation_file = 'data/Dataset_bch.csv'#"data/Dataset_cbtn.csv" #'data/Dataset_t1_healthy_raw.csv' #'data/all_metadata.csv'
-output_dir = 'data/t1_mris/bch_analysis/'
+image_dir ='data/t1_mris/long579_reg_ench/z/'#'data/t1_mris/28_reg_ench/z/'
+#'data/t1_mris/cbtn_reg_ench/z/' #'data/t1_mris/registered/z/' #'data/z_scored_mris/z_with_pseudo/z/'
+input_annotation_file = 'data/Dataset_long579.csv'
+#"data/Dataset_cbtn.csv" #'data/Dataset_t1_healthy_raw.csv' #'data/all_metadata.csv'
+output_dir = 'data/t1_mris/'
     
 warnings.filterwarnings('ignore')
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -80,7 +82,6 @@ def get_metadata(row, image_dir):
             if patient_id in file:
                 image_path = t
     return patient_id, image_path, age, gender,dataset
-
 
 def filter_islands(muscle_seg):
     img = muscle_seg.astype('uint8')
@@ -209,7 +210,7 @@ def measure_tm(image_array,infer_seg_array_3d_1,infer_seg_array_3d_2,slice_label
             round(objL_pred_minf_line + objR_pred_minf_line,2),
             round((objL_pred_minf_line + objR_pred_minf_line)/2,2)] # "TMT PRED SUM w line", # "TMT PRED AVG w line",
                             
-    
+ 
 if __name__=="__main__":
     # load models
     model_selection = DenseNet(img_dim=(256, 256, 1), 
@@ -308,8 +309,8 @@ if __name__=="__main__":
             ## save plots 
             fg = plt.figure(figsize=(5, 5), facecolor='k')
             I = cv2.normalize(image_array_2d[0], None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8U)
-            cv2.imwrite(output_dir+"/pics/no_masks/"+dataset+"_"+patient_id+".png", I)
-            im = cv2.imread(output_dir+"/pics/no_masks/"+dataset+"_"+patient_id+".png")                        
+            cv2.imwrite(output_dir+"/pics/no_masks/"+str(dataset)+"_"+patient_id+".png", I)
+            im = cv2.imread(output_dir+"/pics/no_masks/"+str(dataset)+"_"+patient_id+".png")                        
             im_copy = im.copy()
             
             result = im.copy()
@@ -327,7 +328,7 @@ if __name__=="__main__":
                     else:
                         result = cv2.drawContours(filled, [cont], -1, (51, 197, 255), 0)
 
-            cv2.imwrite(output_dir+"/pics/masks/"+dataset+"_"+patient_id+"_mask.png", result)
+            cv2.imwrite(output_dir+"/pics/masks/"+str(dataset)+"_"+patient_id+"_mask.png", result)
             
             # rescale for the unet
             infer_seg_array_2d_1 = rescale(muscle_seg_1[0],1/scaling_factor)
@@ -343,7 +344,7 @@ if __name__=="__main__":
             
             concated = np.concatenate((infer_seg_array_2d_1_filtered[:100,:,0],infer_seg_array_2d_2_filtered[100:,:,0]),axis=0)    
             infer_seg_array_3d_merged_filtered[:,:,slice_label] = np.pad(concated,[[0,0],[15,21]],'constant',constant_values=0)
-            infer_3d_path = output_dir+"/pics/niftis/"+dataset+"_"+patient_id + '_AI_seg.nii.gz'
+            infer_3d_path = output_dir+"/pics/niftis/"+str(dataset)+"_"+patient_id + '_AI_seg.nii.gz'
             save_nii(infer_seg_array_3d_merged_filtered, infer_3d_path, affine)
                 
             # measure TM
@@ -356,7 +357,7 @@ if __name__=="__main__":
             gc.collect()
             
     df = pd.DataFrame(np.asarray(list_csa))
-    df.to_csv(output_dir+"csa_population_"+dataset+".csv", 
+    df.to_csv(output_dir+"csa_population_"+str(dataset)+".csv", 
                                             header=["ID",
                                                     "Gender", 
                                                     "Age",
