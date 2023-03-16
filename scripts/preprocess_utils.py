@@ -9,6 +9,7 @@ import SimpleITK as sitk
 from scipy.signal import medfilt
 import numpy as np
 import nibabel as nib
+import scipy
 import skimage
 import functools
 from skimage.transform import resize
@@ -288,8 +289,69 @@ def z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to=
                 subprocess.getoutput(duck_line)
             except:
                 continue
-        #Filename,AGE_M,SEX,Ok registered? Y/N,Difficult? Y/N,train/test,Validated,Comment
 
+def closest_value(input_list, input_value):
+    arr = np.asarray(input_list)
+    i = (np.abs(arr - input_value)).argmin()
+    return arr[i], i
+
+def find_centile(input_tmt, age, df):
+    #print("TMT:",input_tmt,"Age:", age)
+    val,i=closest_value(df['x'],age)
+    
+    centile = 'out of range'
+    if input_tmt<df.iloc[i]['X3']:
+        centile ='< 3'
+    if df.iloc[i]['X3']<=input_tmt<df.iloc[i]['X10']:
+        centile ='3-10'
+    if df.iloc[i]['X10']<=input_tmt<df.iloc[i]['X25']:
+        centile ='10-25'
+    if df.iloc[i]['X25']<=input_tmt<df.iloc[i]['X50']:
+        centile ='25-50'
+    if df.iloc[i]['X50']<=input_tmt<df.iloc[i]['X75']:
+        centile ='50-75'
+    if df.iloc[i]['X75']<=input_tmt<df.iloc[i]['X90']:
+        centile ='75-90'
+    if df.iloc[i]['X90']<=input_tmt<df.iloc[i]['X97']:
+        centile ='90-97'
+    if input_tmt>df.iloc[i]['X97']:
+        centile ='97>'
+    #print(val,i,centile)
+    return centile
+
+def find_exact_percentile_return_number(input_tmt, age, df):
+    #print("TMT:",input_tmt,"Age:", age)
+    val,i=closest_value(df['x'],age)
+    
+    mu = df.iloc[i]['mu']
+    sigma = df.iloc[i]['sigma']
+    nu = df.iloc[i]['nu']
+    #tau = df.iloc[i]['tau']
+    
+    if nu!=0:
+        z = ((input_tmt/mu)**(nu)-1)/(nu*sigma)
+    else:
+        z = 1/sigma * math.log(input_tmt/mu)
+    percentile = scipy.stats.norm.cdf(z)
+    return round(percentile*100,2)
+
+
+def add_median_labels(ax, fmt='.1f'):
+    lines = ax.get_lines()
+    boxes = [c for c in ax.get_children() if type(c).__name__ == 'PathPatch']
+    lines_per_box = int(len(lines) / len(boxes))
+    for median in lines[4:len(lines):lines_per_box]:
+        x, y = (data.mean() for data in median.get_data())
+        # choose value depending on horizontal or vertical plot orientation
+        value = x if (median.get_xdata()[1] - median.get_xdata()[0]) == 0 else y
+        text = ax.text(x, y, f'{value:{fmt}}', ha='center', va='center',
+                       fontweight='ultralight', color='gray')
+        # create median-colored border around white text for contrast
+        text.set_path_effects([
+            path_effects.Stroke(linewidth=3, foreground=median.get_color()),
+            path_effects.Normal(),
+        ])
+        
 def register_to_template(input_image_path, output_path, fixed_image_path,create_subfolder=True):
     fixed_image = itk.imread(fixed_image_path, itk.F)
 
