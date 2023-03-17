@@ -48,6 +48,7 @@ physical_devices = tf.config.experimental.list_physical_devices('GPU')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
+# function to compute the crop line (max and min y coordinates of the contour)
 def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
     binary = img_input>-1.7
     binary_smoothed = scipy.signal.medfilt(binary.astype(int), 51)
@@ -80,13 +81,15 @@ def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
         return crop_line
     else:
         return 100
-    
+  
+# function to select the correct MRI template based on the age  
 def select_template_based_on_age(age):
     for golden_file_path, age_values in age_ranges.items():
         if age_values['min_age'] <= int(age) and int(age) <= age_values['max_age']: 
             #print(golden_file_path)
             return golden_file_path
-        
+   
+# register the MRI to the template     
 def register_to_template(input_image_path, output_path, fixed_image_path,rename_id,create_subfolder=True):
     fixed_image = itk.imread(fixed_image_path, itk.F)
 
@@ -112,13 +115,14 @@ def register_to_template(input_image_path, output_path, fixed_image_path,rename_
         except:
             print("Cannot transform", rename_id)
  
+# helper function to find the closest value in a list 
 def closest_value(input_list, input_value):
     arr = np.asarray(input_list)
     i = (np.abs(arr - input_value)).argmin()
     return arr[i], i
-          
+ 
+# function to compute the centile based on the TMT score and age         
 def find_centile(input_tmt, age, df):
-    #print("TMT:",input_tmt,"Age:", age)
     val,i=closest_value(df['x'],age)
     
     centile = 'out of range'
@@ -138,9 +142,9 @@ def find_centile(input_tmt, age, df):
         centile ='90-97'
     if input_tmt>df.iloc[i]['X97']:
         centile ='97>'
-    #print(val,i,centile)
     return centile
-       
+ 
+# function to filter the islands in the segmentation mask, to keep only the largest one      
 def filter_islands(muscle_seg):
     img = muscle_seg.astype('uint8')
     contours, _ = cv2.findContours(img.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -155,6 +159,7 @@ def filter_islands(muscle_seg):
         cnt_mask =  cv2.drawContours(cnt_mask, [c], -1, (255, 255, 255), 0)#cv.drawContours(cnt_mask, [c], 0, (255,255,0), 2)
     return mask, area, c
 
+# predict the TMT score based on the input.nii image and age 
 def predict_itmt(age = 9, gender="M",
                  img_path = 'data/t1_mris/nihm_reg/clamp_1193_v1_t1w.nii.gz',
                  path_to ="data/bch/", cuda_visible_devices="0",
@@ -168,7 +173,6 @@ def predict_itmt(age = 9, gender="M",
     alpha = 0.8 
     os.environ['CUDA_VISIBLE_DEVICES'] = cuda_visible_devices
     image, affine = load_nii(img_path)
-    print(nib.aff2axcodes(affine))
 
     # path to store registered image in
     patient_id = img_path.split("/")[-1].split(".")[0]
@@ -181,20 +185,20 @@ def predict_itmt(age = 9, gender="M",
     print("Registering to template:", golden_file_path)
     register_to_template(img_path, new_path_to, golden_file_path,"registered.nii.gz", create_subfolder=False)
 
-    # enchance and zscore normalize image
+    # enhance and zscore normalize image
     if not os.path.exists(new_path_to+"/no_z"):
         os.mkdir(new_path_to+"/no_z")
         
+    # load image and enhance it
     image_sitk =  sitk.ReadImage(new_path_to+"/registered.nii.gz")
     image_array  = sitk.GetArrayFromImage(image_sitk)
     image_array = enhance_noN4(image_array)
     image3 = sitk.GetImageFromArray(image_array)
 
+    # save enhanced image
     sitk.WriteImage(image3,new_path_to+"/no_z/registered_no_z.nii") 
     cmd_line = "zscore-normalize "+new_path_to+"/no_z/registered_no_z.nii -o "+new_path_to+'/registered_z.nii'
-    subprocess.getoutput(cmd_line)     
-    #print(cmd_line)
-    print("Preprocessing done!")
+    subprocess.getoutput(cmd_line)    
 
     # load models
     model_selection = DenseNet(img_dim=(256, 256, 1), 
@@ -214,16 +218,17 @@ def predict_itmt(age = 9, gender="M",
     image_sitk = sitk.ReadImage(new_path_to+'/registered_z.nii')    
     windowed_images  = sitk.GetArrayFromImage(image_sitk)           
 
+    # resize image to 256x256
     resize_func = functools.partial(resize, output_shape=model_selection.input_shape[1:3],
                                                 preserve_range=True, anti_aliasing=True, mode='constant')
     series = np.dstack([resize_func(im) for im in windowed_images])
     series = np.transpose(series[:, :, :, np.newaxis], [2, 0, 1, 3])
     series_n = []
 
+    # create MIP of 5 slices = 5mm
     for slice_idx in range(2, np.shape(series)[0]-2):
         im_array = np.zeros((256, 256, 1, 5))
         
-        # create MIP of 5 slices = 5mm 
         im_array[:,:,:,0] = series[slice_idx-2,:,:,:].astype(np.float32)
         im_array[:,:,:,1] = series[slice_idx-1,:,:,:].astype(np.float32)
         im_array[:,:,:,2] = series[slice_idx,:,:,:].astype(np.float32)
@@ -235,7 +240,8 @@ def predict_itmt(age = 9, gender="M",
         series_n.append(im_array)
         series_w = np.dstack([funcy(im) for im in series_n])
         series_w = np.transpose(series_w[:, :, :, np.newaxis], [2, 0, 1, 3])
-            
+        
+    # predict slice  
     predictions = model_selection.predict(series_w)
     slice_label = get_slice_number_from_prediction(predictions)
     print("Predicted slice:", slice_label)
@@ -243,11 +249,11 @@ def predict_itmt(age = 9, gender="M",
     img = nib.load(new_path_to+'/registered_z.nii')  
     image_array, affine = img.get_fdata(), img.affine
     infer_seg_array_3d_1,infer_seg_array_3d_2 = np.zeros(image_array.shape),np.zeros(image_array.shape)
-    #print(np.asarray(nib.aff2axcodes(affine)))
-
+    
     # rescale image into 512x512 for unet 
     image_array_2d = rescale(image_array[:,15:-21,slice_label], scaling_factor).reshape(1,target_size_unet[0],target_size_unet[1],1) 
-                
+    
+    # create 4 images - half TMT and half empty           
     img_half_11 = np.concatenate((image_array_2d[:,:256,:,:],np.zeros_like(image_array_2d[:,:256,:,:])),axis=1)
     img_half_21 = np.concatenate((np.zeros_like(image_array_2d[:,:256,:,:]),image_array_2d[:,:256,:,:]),axis=1)
     img_half_12 = np.concatenate((np.zeros_like(image_array_2d[:,256:,:,:]),image_array_2d[:,256:,:,:]),axis=1)
@@ -266,6 +272,7 @@ def predict_itmt(age = 9, gender="M",
     list_of_left_muscle_preds = []
     list_of_right_muscle_preds = []
 
+    # predict left and right muscle on each of 4 images
     for image in list_of_left_muscle: 
         infer_seg_array = model_unet.predict(image)
         muscle_seg = infer_seg_array[:,:,:,1].reshape(1,target_size_unet[0],target_size_unet[1],1)               
@@ -285,7 +292,8 @@ def predict_itmt(age = 9, gender="M",
                                         list_of_right_muscle_preds[1][:,:256,:,:],
                                         np.flip(list_of_right_muscle_preds[2][:,:256,:,:],axis=1),
                                         np.flip(list_of_right_muscle_preds[3][:,256:,:,:],axis=1)]
-                    
+      
+    # average predictions and threshold              
     left_half_result = np.mean(list_of_left_muscle_preds_halved, axis=0)<=threshold # <>
     right_half_result = np.mean(list_of_right_muscle_preds_halved, axis=0)<=threshold # <>
     muscle_seg_1 = np.concatenate((left_half_result,np.zeros_like(left_half_result)),axis=1)
@@ -298,7 +306,7 @@ def predict_itmt(age = 9, gender="M",
     muscle_seg_1_filtered, area_1, cnt_1 = filter_islands(muscle_seg_1[0])
     muscle_seg_2_filtered, area_2, cnt_2 = filter_islands(muscle_seg_2[0])
 
-    ## save plots 
+    # save plots 
     fg = plt.figure(figsize=(5, 5), facecolor='k')
     I = cv2.normalize(image_array_2d[0], None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8U)
     cv2.imwrite(path_to+"/"+patient_id+"_no_masks.png", I)
@@ -368,7 +376,7 @@ def predict_itmt(age = 9, gender="M",
     print("Age:",str(age)," Gender:",gender)
     print("iTMT[mm]:", input_tmt)
     
-    ## add centiles estimation
+    # centiles estimation
     df_centile_boys = pd.read_csv(df_centile_boys_csv,header=0)
     df_centile_girls = pd.read_csv(df_centile_girls_csv,header=0)
     if gender =='F' or gender=='Female' or gender=='f' or gender=='F':
