@@ -22,3 +22,4 @@ compare_TM_CSA_on_neighbor_slices.ipynb
 cuda_libs/libcudnn8_8.6.0.163-1+cuda11.8_amd64.deb
 PyNM/*
 private_notebooks/*
+HD-BET/*
