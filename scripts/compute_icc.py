@@ -17,11 +17,9 @@ import cv2
 
 from scripts.preprocess_utils import load_nii, save_nii, iou, crop_center, find_file_in_path, get_id_and_path
 from scripts.unet import get_unet_2D
-#from settings import target_size_unet, unet_classes, softmax_threshold,major_voting,scaling_factor
 from scripts.feret import Calculater
-#from compute_population_pred import major_voting, measure_tm, filter_islands,compute_crop_line
 
-
+# compute the ICC for the segmentation results
 def single_dice_coef(y_true, y_pred_bin):
     # shape of y_true and y_pred_bin: (height, width)
     intersection = np.sum(y_true * y_pred_bin)
@@ -29,6 +27,7 @@ def single_dice_coef(y_true, y_pred_bin):
         return 1
     return (2*intersection) / (np.sum(y_true) + np.sum(y_pred_bin))
 
+# compute the mean dice coefficient
 def mean_dice_coef(y_true, y_pred_bin):
     # shape of y_true and y_pred_bin: (n_samples, height, width)
     batch_size = y_true.shape[0]
@@ -38,6 +37,7 @@ def mean_dice_coef(y_true, y_pred_bin):
         mean_dice_channel += channel_dice/(batch_size)
     return mean_dice_channel
 
+# compute the median dice coefficient
 def median_dice_coef(y_true, y_pred_bin):
     # shape of y_true and y_pred_bin: (n_samples, height, width)
     batch_size = y_true.shape[0]
@@ -48,6 +48,7 @@ def median_dice_coef(y_true, y_pred_bin):
     t=sorted(median_dice_channel)   
     return median(t)
 
+# compute the ICC for the segmentation results
 def dice_coef(y_true, y_pred):
     y_true_f = y_true.flatten()
     y_pred_f = y_pred.flatten()
@@ -56,6 +57,7 @@ def dice_coef(y_true, y_pred):
     intersection = np.sum(y_true_f * y_pred_f)
     return 2. * intersection / union
 
+# helper function to get the age and sex
 def get_metadata(row, image_dir):
     patient_id, image_path, age, gender = "","","",""
     patient_id = str(row['Filename']).split(".")[0]
@@ -74,6 +76,7 @@ def get_metadata(row, image_dir):
                 image_path = t
     return age, gender
 
+# compute the IOU
 def iou(component1, component2):
     component1 = np.array(component1, dtype=bool)
     component2 = np.array(component2, dtype=bool)
@@ -84,6 +87,7 @@ def iou(component1, component2):
     IOU = overlap.sum()/float(union.sum())
     return IOU
 
+# set paths
 annotator_1_healthy_path = "data/curated_test/final_test/z/"
 annotator_1_cancer_path = 'data/mni_templates_BK/'
 annotator_2_healthy_path = "data/curated_test/TM_validation_Kevin/healthy/"
@@ -93,6 +97,7 @@ metadata_1_path = 'data/curated_test/final_test/Dataset_test_rescaled.csv'
 metadata_2_path = "data/icc_val/cancer_meta.csv"
 output_dir = "data/icc_val/"
 
+# load the mask
 def load_mask(tm_file):
     seg_data, seg_affine = load_nii(tm_file)
     if (np.asarray(nib.aff2axcodes(seg_affine))==['R', 'A', 'S']).all():
@@ -123,8 +128,7 @@ def icc_masks(slice_csv_path,annotator_1_path, annotator_2_path, output_dir):
     for idx, row in df_prediction.iterrows():
         patient_id, image_path1, tm_file1,_ = get_id_and_path(row, annotator_1_path, True)
         patient_id, image_path2, tm_file2,_ = get_id_and_path(row, annotator_2_path, True)
-        print(tm_file1, tm_file2)#, image_path2)
-        #age, gender = get_metadata(row, image_dir)
+        print(tm_file1, tm_file2)
         
         if len(image_path1) != 0:
             seg_mask1_2d, label1, seg_mask1_3d = load_mask(tm_file1)
@@ -198,16 +202,7 @@ def icc_masks(slice_csv_path,annotator_1_path, annotator_2_path, output_dir):
                                              "avg_tmt_minf",
                                              "avg_tmt_minf90"])
     
-    
-            
+              
 # measure difference in segmentaion mask
 icc_masks(metadata_1_path, annotator_1_healthy_path, annotator_2_healthy_path, output_dir)
 #icc_masks(metadata_2_path, annotator_1_cancer_path, annotator_2_cancer_path, output_dir)
-
-# registration agreement 
-
-# C231240_1_T1W
-# C1264932_1_T1W
-# C1198881_1_T1W
-# C72693_1_T1W
-# C27552_1_T1W

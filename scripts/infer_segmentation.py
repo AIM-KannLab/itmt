@@ -48,6 +48,7 @@ def median_dice_coef(y_true, y_pred_bin):
     t=sorted(median_dice_channel)   
     return median(t)
 
+# compute dice coefficient
 def dice_coef(y_true, y_pred):
     y_true_f = y_true.flatten()
     y_pred_f = y_pred.flatten()
@@ -56,7 +57,7 @@ def dice_coef(y_true, y_pred):
     intersection = np.sum(y_true_f * y_pred_f)
     return 2. * intersection / union
 
-
+# get metadata : age and sex
 def get_metadata(row, image_dir):
     patient_id, image_path, age, gender = "","","",""
     patient_id = str(row['Filename']).split(".")[0]
@@ -75,14 +76,16 @@ def get_metadata(row, image_dir):
                 image_path = t
     return age, gender
 
-
+# test the model
 def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
     model = get_unet_2D(unet_classes,(target_size_unet[0], target_size_unet[1], 1),\
         num_convs=2,  activation='relu',
         compression_channels=[16, 32, 64, 128, 256, 512],
         decompression_channels=[256, 128, 64, 32, 16])
-    model.load_weights(model_weight_path)
     
+    # load the model
+    model.load_weights(model_weight_path)
+    # load the csv file
     df_prediction = pd.read_csv(slice_csv_path,index_col=0)
 
     split_name = 'test'
@@ -95,6 +98,8 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
     list_csa = []
     lst_dices = []
     print("Testing n=",len(df_prediction))
+    
+    # loop over the csv file
     for idx, row in df_prediction.iterrows():
         print(idx)
         patient_id, image_path, tm_file,_ = get_id_and_path(row, image_dir, True)
@@ -104,6 +109,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
         if image_path != 0:
             seg_data, seg_affine = load_nii(tm_file)
             
+            # check the orientation of the image
             if (np.asarray(nib.aff2axcodes(seg_affine))==['R', 'A', 'S']).all():
                 slice_label = np.asarray(np.where(seg_data != 0)).T[0, 2] 
                 image_array, affine = load_nii(image_path)
@@ -124,16 +130,19 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
                 seg_data, seg_affine  = seg.get_fdata(), seg.affine
                 
                 slice_label = np.asarray(np.where(seg_data != 0)).T[0, 2] 
-                    
+            
+            # create empty arrays        
             infer_seg_array_3d_1,infer_seg_array_3d_2 = np.zeros(image_array.shape),np.zeros(image_array.shape)
             infer_seg_array_3d_1_filtered,infer_seg_array_3d_2_filtered = np.zeros(image_array.shape),np.zeros(image_array.shape)
             infer_seg_array_3d_merged_filtered =  np.zeros(image_array.shape)
-        
-            image_array_2d = rescale(image_array[:,15:-21,slice_label], scaling_factor).reshape(1,target_size_unet[0],target_size_unet[1],1) 
             
+            # rescale the image
+            image_array_2d = rescale(image_array[:,15:-21,slice_label], scaling_factor).reshape(1,target_size_unet[0],target_size_unet[1],1) 
+            # split the image in two
             img_half_1 = np.concatenate((image_array_2d[:,:256,:,:],np.zeros_like(image_array_2d[:,:256,:,:])),axis=1)
             img_half_2 = np.concatenate((np.zeros_like(image_array_2d[:,256:,:,:]),image_array_2d[:,256:,:,:]),axis=1)
 
+            # predict the segmentation and filter the segmentation
             if major_voting ==False:
                 infer_seg_array_1 = model.predict(img_half_1)
                 infer_seg_array_2 = model.predict(img_half_2)
@@ -143,6 +152,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
             else:
                 muscle_seg_1, muscle_seg_2 = major_voting(image_array_2d, model)
 
+            # plot the segmentation
             fg=plt.figure(figsize=(5, 5), facecolor='k')
             plt.imshow(image_array_2d[0],'gray')
             plt.imshow(muscle_seg_1[0], 'gray', alpha=0.4, interpolation='none')
@@ -231,25 +241,18 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
                                  *unfiltered_metrics, 
                                  *filtered_metrics])
                 
-                #list_true_1.append(seg_data[:100,:,slice_label])
-                #list_true_2.append(seg_data[100:,:,slice_label])
                 list_true.append(np.concatenate((seg_data[:100,:,slice_label],seg_data[100:,:,slice_label]),axis=0))
-                #list_pred_1.append(infer_seg_array_3d_1_filtered[:100,:,slice_label])
-                #list_pred_2.append(infer_seg_array_3d_2_filtered[100:,:,slice_label])
                 list_pred.append(np.concatenate((infer_seg_array_3d_1_filtered[:100,:,slice_label],infer_seg_array_3d_2_filtered[100:,:,slice_label]),axis=0))
                 
-            gc.collect()   
-            #if idx>2:
-            #    break      
+            gc.collect()      
         
-    #[:,int(crop_line):]
     print(np.shape(np.asarray(list_true)[:,:,int(crop_line):]))
     print("Mean dice TM:", round(mean_dice_coef(np.asarray(list_true)[:,:,int(crop_line):],np.asarray(list_pred)[:,:,int(crop_line):]),3))
     print("Median dice TM :",round(median_dice_coef(np.asarray(list_true)[:,:,int(crop_line):],np.asarray(list_pred)[:,:,int(crop_line):]),3))
     
     df=pd.DataFrame(np.asarray(list_csa))
     df_dices=pd.DataFrame(np.asarray(lst_dices))
-    df_dices.to_csv("data/dices_healthy.csv", header=["ID","Gender", "Age", "Slice label",
+    df_dices.to_csv("data/dices.csv", header=["ID","Gender", "Age", "Slice label",
                                               'Dice1','Dice2'])
     
     df.to_csv(output_dir+"csa.csv", header=["ID","Gender", "Age", "Slice label",

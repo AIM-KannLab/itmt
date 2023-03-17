@@ -3,33 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.stats import pearsonr
 
 input_annotation_file = 'data/pop_norms.csv'
 df = pd.read_csv(input_annotation_file, header=0)
 
-# CSA and TM correlations
-from scipy.stats import pearsonr
-
-#df=df[df["TMT PRED AVG"]<20]
-#df=df[df["Slice label"]>50]
-#df=df[df["Slice label"]<100]
-#Slice label
-
-corr, _ = pearsonr(df['TMT PRED AVG filtered'], df['CSA PRED AVG filtered'])
-print('Pearsons correlation: %.3f' % corr)
-
-from scipy.stats import spearmanr
-corr, _ = spearmanr(df['TMT PRED AVG filtered'], df['CSA PRED AVG filtered'])
-print('Spearmans correlation: %.3f' % corr)
-
-#plot general
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-df['Sex'] = df['Gender'].map({2:'Female',1:'Male'})
-sns.boxplot(x="Age", y="TMT PRED AVG", hue="Sex", data=df, 
-            palette="colorblind", width=0.5).set_title("Biological gender wrt TMT n="+str(df.shape[0]))
-plt.savefig('data/abcd_plots/gender.png', dpi=300)
+## this is code to match the ids of the abcd dataset with the ids of the population norms
 
 ## HORMONES
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
@@ -62,28 +41,7 @@ df_hrm = pd.DataFrame(list_hrm,columns=['id','Age','gender','DHEA','HSE','ERT','
 df_hrm['Above average DHEA'] = df_hrm['DHEA']>=df_hrm['DHEA'].mean()
 df_hrm['Above average HSE'] = df_hrm['HSE']>=df_hrm['HSE'].mean()
 df_hrm['Above average ERT'] = df_hrm['ERT']>=df_hrm['ERT'].mean()
-
 df_hrm.to_csv(path_or_buf= "data/ABCD-studies/abcd_hsss01.csv")
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average DHEA", 
-            data=df_hrm, palette="colorblind", width=0.5).set_title("Child Salimetrics hormone test DHEA n="+str(df_hrm.shape[0]))
-plt.savefig('data/abcd_plots/DHEA.png', dpi=300)
-
-
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average HSE", data=df_hrm, 
-            palette="colorblind", width=0.5).set_title("Child Salimetrics hormone test HSE n="+str(df_hrm.shape[0]))
-plt.savefig('data/abcd_plots/HSE.png', dpi=300)
-
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average ERT", data=df_hrm, palette="colorblind",
-            width=0.5).set_title("Child Salimetrics hormone test ERT n="+str(df_hrm.shape[0]))
-plt.savefig('data/abcd_plots/ERT.png', dpi=300)
 
 
 ## INCOME
@@ -116,23 +74,6 @@ for idx in range(0, df_xls.shape[0]):
 df_etnic = pd.DataFrame(list_etnic,columns=['id','Age','gender','Total house income','TMT PRED AVG filtered'])            
 df_etnic['Income Above $50,000'] = (df_etnic['Age']>=7) & (df_etnic['Total house income']<=10)          
 df_etnic.to_csv(path_or_buf= "data/ABCD-studies/abcdabcd_lpds01_income.csv")
-#1 = Less than $5,000 ; 
-#2 = $5,000 through $11,999 ;
-#3 = $12,000 through $15,999 ; 
-#4 = $16,000 through $24,999 ; 
-#5 = $25,000 through $34,999 ; 
-#6 = $35,000 through $49,999 ; 
-#7 = $50,000 through $74,999 ; 
-#8 = $75,000 through $99,999 ; 
-#9 = $100,000 through $199,999 ; 
-#10 = $200,000 and greater ; 
-# 999, Don't know ; 777, Refuse to answer   
-plt.clf()                            
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered",hue="Income Above $50,000", 
-            data=df_etnic, palette="colorblind", width=0.5).set_title("Total house income n="+str(df_etnic.shape[0]))
-plt.savefig('data/abcd_plots/income.png', dpi=300)
 
 ## ACTIVITY
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
@@ -178,24 +119,12 @@ for idx in range(0, df_xls.shape[0]):
                 break
     except:
         continue
-    #if idx >=100:
-    #    break
     
 df_phys = pd.DataFrame(list_ph_act,columns=['id','Age','gender','Vigorous',
                                             'Moderate','Light','No activity',"Activity level",
                                             'TMT PRED AVG filtered'])
 df_phys.to_csv(path_or_buf= "data/ABCD-studies/internat_physical_activ01.csv")
 
-plt.clf()
-try:
-    sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-    sns.set_style("whitegrid")
-    sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average activity level", data=df_phys, palette="colorblind", 
-                width=0.5).set_title("Child activity level n="+str(df_phys.shape[0]))
-
-    plt.savefig('data/abcd_plots/activity.png', dpi=300)
-except:
-    pass
 
 try:
     df_phys['Activity Levels2'] = df_phys['Light'] +3* df_phys['Vigorous']+2* df_phys['Moderate'] 
@@ -218,24 +147,15 @@ try:
         else:
             act_list2.append("No data")
             
-    df_phys['Activity Levels Quantiles'] = act_list2
-    plt.clf()
-    sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-    sns.set_style("whitegrid")
-    sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Activity Levels Quantiles",
-                hue_order=['<25%','25%-50%','50%-75%','75%>'], data=df_phys,
-                palette="colorblind", width=0.5).set_title("Child activity level n="+str(df_phys.shape[0]))
-
-    plt.savefig('data/abcd_plots/activity_quantiles.png', dpi=300)     
+    df_phys['Activity Levels Quantiles'] = act_list2 
 except:
     pass
-## 7. BMI vs TMT: abcd_ant01
 
+## BMI vs TMT: abcd_ant01
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
 df_xls =pd.read_excel(open(input_annotation_file_xls, 'rb'),
               sheet_name='abcd_ant01') 
 df_xls = df_xls.drop([0])
-
 list_ant = []
 
 # tried to do a full match as in https://www.geeksforgeeks.org/join-pandas-dataframes-matching-by-substring/
@@ -260,9 +180,8 @@ for idx in range(0, df_xls.shape[0]):
                 
 df_ant = pd.DataFrame(list_ant,columns=['id',"Visit",'Age','gender','Height',"Weight","BMI",'TMT PRED AVG filtered'])
 df_ant.to_csv(path_or_buf= "data/ABCD-studies/abcd_bmi.csv")
-
-
 df_ant = pd.read_csv("data/ABCD-studies/abcd_bmi.csv", header=0)
+
 ## check the parents estimate 
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
 df_xls_disorders =pd.read_excel(open(input_annotation_file_xls, 'rb'),
@@ -270,7 +189,6 @@ df_xls_disorders =pd.read_excel(open(input_annotation_file_xls, 'rb'),
 df_xls_disorders = df_xls_disorders.drop([0])
 # ksads_eatingdis_raw_359_p
 
-# ksads_eatingdis_raw_359_p
 list_par_estimate = []
 for idx in range(0, df_ant.shape[0]):
     row = df_ant.iloc[idx]
@@ -281,8 +199,6 @@ for idx in range(0, df_ant.shape[0]):
             
             if str(key_id) in str(row['id']) and str(row_xls['eventname'].replace("_","").lower()) in str(row['Age']) \
             and row_xls['ksads_eatingdis_raw_359_p']!="":
-                #print(row['id'],row['Visit'])
-                #feet:4inches:10weight:95
                 height_ft  = int(row_xls['ksads_eatingdis_raw_359_p'].split("feet:")[1].split("inches:")[0]) * 12 + \
                 int(row_xls['ksads_eatingdis_raw_359_p'].split("inches:")[1].split("weight:")[0])
                 
@@ -319,19 +235,6 @@ for idx in range(0, df_ant.shape[0]):
         act_list2.append("No data")
         
 df_ant['BMI Quantiles'] = act_list2
-
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="BMI Quantiles",
-            hue_order=['<25%%, '+ str(round(first_q,2)),
-                       '25%%-50%%, '+ str(round(first_q,2)) + "-"+ str(round(mean_q,2)),
-                       '50%%-75%%, '+ str(round(mean_q,2)) + "-"+ str(round(third_q,2)),
-                       '75%%>, '+ str(round(third_q,2))], 
-            data=df_ant, palette="colorblind", width=0.5).set_title("BMI level n="+str(df_ant.shape[0]))
-plt.savefig('data/abcd_plots/bmi.png', dpi=300)
-
 first_q = df_ant['Height'].quantile([.25, .5, .75])[0.25]
 mean_q = df_ant['Height'].quantile([.25, .5, .75])[0.5]
 third_q = df_ant['Height'].quantile([.25, .5, .75])[0.75]
@@ -351,47 +254,9 @@ for idx in range(0, df_ant.shape[0]):
         act_list2.append("No data")
         
 df_ant['Height Quantiles'] = act_list2
-
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Height Quantiles",
-            hue_order=['<25%%, '+ str(round(first_q,2)),
-                       '25%%-50%%, '+ str(round(first_q,2)) + "-"+ str(round(mean_q,2)),
-                       '50%%-75%%, '+ str(round(mean_q,2)) + "-"+ str(round(third_q,2)),
-                       '75%%>, '+ str(round(third_q,2))], 
-            data=df_ant, palette="colorblind", width=0.5).set_title("Height quantiles n="+str(df_ant.shape[0]))
-plt.savefig('data/abcd_plots/height_quantile.png', dpi=300)
-
-plt.clf()
-df_ant['TMT-BMI adj'] = df_ant["TMT PRED AVG filtered"]/df_ant['BMI']
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-
-df_ant = df_ant[df_ant['TMT-BMI adj']<2.5]
-df_ant['Sex'] = df_ant['gender'].map({2:'Female',1:'Male'})
-sns.boxplot(x="Age", y="TMT-BMI adj",hue='Sex',
-            data=df_ant, palette="colorblind", width=0.5).set_title("TMT BMI-adjusted n="+str(df_ant.shape[0]))
-plt.savefig('data/abcd_plots/tmt-bmi.png', dpi=300)
-
-plt.clf()
-df_ant['TMT-Height adj'] = df_ant["TMT PRED AVG filtered"]/df_ant['Height']
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-
-
-df_ant = df_ant[df_ant['TMT-BMI adj']<2.5]
 df_ant.to_csv(path_or_buf= "data/ABCD-studies/abcd_bmi_2.csv")
-df_ant['Sex'] = df_ant['gender'].map({2:'Female',1:'Male'})
-plt.clf()
-sns.boxplot(x="Age", y="TMT-Height adj",hue='Sex',
-            data=df_ant, palette="colorblind", width=0.5).set_title("TMT Height-adjusted n="+str(df_ant.shape[0]))
-plt.savefig('data/abcd_plots/tmt-height-adj.png', dpi=300)
-
 
 ## 8. Steps activity levels abcd_fbwpas01
-
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
 df_xls =pd.read_excel(open(input_annotation_file_xls, 'rb'),
               sheet_name='abcd_fbwpas01') 
@@ -441,49 +306,23 @@ for idx in range(0, df_step.shape[0]):
         act_list2.append("No data")
         
 df_step['Total steps Quantiles'] = act_list2
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Total steps Quantiles",
-            hue_order=['<25%%, '+ str(round(first_q,2)),
-                       '25%%-50%%, '+ str(round(first_q,2)) + "-"+ str(round(mean_q,2)),
-                       '50%%-75%%, '+ str(round(mean_q,2)) + "-"+ str(round(third_q,2)),
-                       '75%%>, '+ str(round(third_q,2))], 
-            data=df_step, palette="colorblind", width=0.5).set_title("Total step level quantiles n="+str(df_step.shape[0]))
-plt.savefig('data/abcd_plots/step_quantiles.png', dpi=300)
-
 
 ## 9. Calorical Intake (abcd_bkfs01)
-
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
 df_xls =pd.read_excel(open(input_annotation_file_xls, 'rb'),
               sheet_name='abcd_bkfs01') 
 df_xls = df_xls.drop([0])
-
 df_2 = df.loc[df['ID'].str.contains("2year|3year", case=False)]
 
 list_cals = []
-
-#gi
-#gl
-#dt_kcal
-#dt_prot
-#dt_tfat
-#dt_carb
-#dt_fibe
-#dt_sug_t
-
 for idx in range(0, df_xls.shape[0]):
     row_xls = df_xls.iloc[idx]
     for jdx in range(0, df_2.shape[0]):
         row = df_2.iloc[jdx]
-        #print(row_xls['eventname'])
         try:
             key_id = row_xls['subjectkey'].split("_")[0] + row_xls['subjectkey'].split("_")[1]
             if key_id in row['ID'] and row_xls['eventname'].replace("_","").lower() in row['ID'].lower():
                 if not pd.isna(row_xls['bkfs_dt_kcal']):
-                    #print(idx, row_xls['subjectkey'], row_xls['eventname'])
                     list_cals.append([key_id, 
                                 row['Age'], 
                                 row['Gender'], 
@@ -498,15 +337,6 @@ df_cals.to_csv(path_or_buf= "data/ABCD-studies/abcd_cals.csv")
 
 mean_cal=str(round(df_cals['Dt_kcal'].mean(),2))
 df_cals["Above average Dt_kcal level, mean="+mean_cal+" kcal"] = df_cals['Dt_kcal']>=df_cals['Dt_kcal'].mean()
-plt.clf()
-sns.set(rc={'figure.figsize':(8.7,3.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average Dt_kcal level, mean="+mean_cal+" kcal", 
-            data=df_cals, 
-            palette="colorblind", width=0.5).set_title("Child Dt_kcal level n="+str(df_cals.shape[0]))
-plt.savefig('data/abcd_plots/dt_kal.png', dpi=300)
-
 
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
 df_xls =pd.read_excel(open(input_annotation_file_xls, 'rb'),
@@ -522,10 +352,8 @@ for idx in range(0, df_xls.shape[0]):
         key_id = row_xls['subjectkey'].split("_")[0] + row_xls['subjectkey'].split("_")[1]
         for jdx in range(0, df_2.shape[0]):
             row = df_2.iloc[jdx]
-            #print(row['ID'])
             if key_id in row['ID']:
                 if not pd.isna(row_xls['biospec_blood_hemoglobin']):
-                    #print(idx, row_xls['subjectkey'], row_xls['eventname'])
                     list_blood.append([key_id, 
                                 row['Age'], 
                                 row['Gender'], 
@@ -543,26 +371,9 @@ df_blood = pd.DataFrame(list_blood,columns=['id','Age','Gender',
 df_blood.to_csv(path_or_buf= "data/ABCD-studies/abcd_blood.csv")
 
 df_blood["Above average Cholesterol level, mean="+str(round(df_blood['Cholesterol'].mean(),2))] = df_blood['Cholesterol']>=df_blood['Cholesterol'].mean()
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average Cholesterol level, mean="+str(round(df_blood['Cholesterol'].mean(),2)), data=df_blood, 
-            palette="colorblind", width=0.5).set_title("Child Cholesterol level n="+str(df_blood.shape[0]))
-plt.savefig('data/abcd_plots/dt_cholester.png', dpi=300)
-
-
-plt.clf()
 df_blood["Above average Hemoglobin level, mean="+str(round(df_blood['Hemoglobin'].mean(),2))] = df_blood['Hemoglobin']>=df_blood['Hemoglobin'].mean()
 
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Above average Hemoglobin level, mean="+str(round(df_blood['Hemoglobin'].mean(),2)),
-            data=df_blood,
-            palette="colorblind", width=0.5).set_title("Child Hemoglobin level n="+str(df_blood.shape[0]))
-plt.savefig('data/abcd_plots/dt_hemoglobin.png', dpi=300)
-
-
-
+## ETNICITY
 input_annotation_file_xls = 'data/combined_abcd.xlsx'
 df_xls =pd.read_excel(open(input_annotation_file_xls, 'rb'),
               sheet_name='multigrp_ethnic_id_meim01') 
@@ -620,11 +431,3 @@ df_etnic = pd.DataFrame(list_etnic,columns=['id',
                                             'Race',
                                             'TMT PRED AVG filtered'])
 df_etnic.to_csv(path_or_buf= "data/ABCD-studies/abcd_enticity.csv")
-
-plt.clf()
-sns.set(rc={'figure.figsize':(16.7,6.27),'axes.facecolor':'white', 'figure.facecolor':'white'})
-sns.set_style("whitegrid")
-sns.boxplot(x="Age", y="TMT PRED AVG filtered", hue="Race", data=df_etnic, 
-            palette="colorblind", width=0.5).set_title("Race n="+str(df_etnic.shape[0]))
-
-plt.savefig('data/abcd_plots/race_mem.png', dpi=300)

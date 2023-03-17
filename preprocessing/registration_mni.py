@@ -12,7 +12,6 @@ import tarfile
 
 from scripts.preprocess_utils import find_file_in_path, register_to_template
 
-
 split = "HEALTHY" # select the split to perform registration on
 # this is created for some flexibility in reading metadata, and specifying input paths
 

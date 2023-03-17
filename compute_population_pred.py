@@ -40,18 +40,19 @@ from settings import target_size_dense_net, target_size_unet, unet_classes, soft
 from scripts.infer_selection import get_slice_number_from_prediction, funcy
 import warnings
 
+## this is a file for computing the population prediction in batch
+
 #path to ench and registered file
-image_dir ='data/t1_mris/long579_reg_ench/z/'#'data/t1_mris/28_reg_ench/z/'
-#'data/t1_mris/cbtn_reg_ench/z/' #'data/t1_mris/registered/z/' #'data/z_scored_mris/z_with_pseudo/z/'
-input_annotation_file = 'data/Dataset_long579.csv'
-#"data/Dataset_cbtn.csv" #'data/Dataset_t1_healthy_raw.csv' #'data/all_metadata.csv'
+image_dir ='data/t1_mris/28_reg_ench/z/'
+input_annotation_file = 'data/Dataset_28.csv'
 output_dir = 'data/t1_mris/'
     
 warnings.filterwarnings('ignore')
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
-                                       
+    
+# model paths                                   
 model_weight_path_segmentation = 'model/unet_models/test/Top_Segmentation_Model_Weight.hdf5'
 model_weight_path_selection = 'model/densenet_models/test/brisk-pyramid.hdf5'
 
@@ -64,6 +65,7 @@ list_true, list_pred = [], []
 list_true_line,list_pred_line = [], []
 list_csa = []
 
+# get the metadata - age and sex
 def get_metadata(row, image_dir):
     patient_id, image_path, age, gender = "","","",""
     patient_id = str(row['Filename']).split(".")[0]
@@ -83,6 +85,7 @@ def get_metadata(row, image_dir):
                 image_path = t
     return patient_id, image_path, age, gender,dataset
 
+# filter the islands in the segmentation mask
 def filter_islands(muscle_seg):
     img = muscle_seg.astype('uint8')
     contours, _ = cv2.findContours(img.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -271,19 +274,6 @@ if __name__=="__main__":
             infer_seg_array_3d_1,infer_seg_array_3d_2 = np.zeros(image_array.shape),np.zeros(image_array.shape)
             infer_seg_array_3d_1_filtered,infer_seg_array_3d_2_filtered = np.zeros(image_array.shape),np.zeros(image_array.shape)
             infer_seg_array_3d_merged_filtered =  np.zeros(image_array.shape)
-        
-            '''   
-            # check the orientation - and reorient if needed
-            if (np.asarray(nib.aff2axcodes(im_affine))==['R', 'A', 'S']).all():
-                image_array, affine = load_nii(image_path)
-            elif (np.asarray(nib.aff2axcodes(im_affine))==['L', 'P', 'S']).all():
-                ornt = np.array([[0, -1],
-                                    [1, 1],
-                                    [2, 1]])
-                    
-                img = nib.load(image_path)    
-                img = img.as_reoriented(ornt) 
-                image_array, affine = img.get_fdata(), img.affine'''
             
             # rescale image into 512x512 for unet 
             image_array_2d = rescale(image_array[:,15:-21,slice_label], scaling_factor).reshape(1,target_size_unet[0],target_size_unet[1],1) 
@@ -300,7 +290,6 @@ if __name__=="__main__":
             else:
                 muscle_seg_1, muscle_seg_2 = major_voting(image_array_2d, model_segmentation)
                 
-            #print(idx,' image:',patient_id,'(slice_label:',slice_label,')')
             
             # filter islands
             muscle_seg_1_filtered, area_1, cnt_1 = filter_islands(muscle_seg_1[0])
@@ -355,7 +344,8 @@ if __name__=="__main__":
                 list_csa.append([patient_id, gender, age, dataset, slice_label, *unfiltered_metrics, *filtered_metrics])
                 
             gc.collect()
-            
+           
+    # save metrics 
     df = pd.DataFrame(np.asarray(list_csa))
     df.to_csv(output_dir+"csa_population_"+str(dataset)+".csv", 
                                             header=["ID",

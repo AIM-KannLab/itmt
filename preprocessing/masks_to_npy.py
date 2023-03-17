@@ -14,6 +14,9 @@ from settings import target_size_unet, scaling_factor
 import matplotlib.pyplot as plt
 from scripts.preprocess_utils import enhance, load_nii, get_id_and_path_not_nested,enhance_noN4,find_file_in_path
 
+## preprocessing for the slicer selection model
+
+#get the image and mask paths
 def get_id_and_path(row, image_dir):
     patient_id, image_path, tm_file = 0,0,0
     if row['Ok registered? Y/N'] == "N":
@@ -37,8 +40,8 @@ def get_id_and_path(row, image_dir):
             image_path = t
     return patient_id, image_path, tm_file
 
-def nifty_to_npy(df, path_images_array, path_masks_array):
-    
+# convert nifti to numpy array
+def nifty_to_npy(df, path_images_array, path_masks_array):  
     # create empty arrays for populating with image slices
     images_array  = np.zeros((df.shape[0]*4, target_size_unet[0], target_size_unet[1], 1))
     masks_array  = np.zeros((df.shape[0]*4, target_size_unet[0], target_size_unet[1], 1))
@@ -75,8 +78,7 @@ def nifty_to_npy(df, path_images_array, path_masks_array):
     np.save(path_images_array, images_array)
     np.save(path_masks_array, masks_array)
 
-if __name__=="__main__":
-    
+if __name__=="__main__": 
     input_annotation_file = 'data/all_metadata.csv'
     image_dir  = 'data/z_scored_mris/z_with_pseudo/z/' #'data/denoised_mris/'
 

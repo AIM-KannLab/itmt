@@ -27,7 +27,7 @@ from preprocess_utils import  load_nii,save_nii ,crop_center
 from settings import  target_size_dense_net, target_size_unet, unet_classes, softmax_threshold, major_voting
 from infer_segmentation import get_slice_number_from_prediction,funcy
 
-
+# prediction of the segmentation
 def predict_slice_and_segmentation(image_dir, model_weight_path_densenet,model_weight_path_unet):
     images = []
     for path in os.listdir(image_dir):

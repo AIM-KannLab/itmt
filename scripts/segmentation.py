@@ -11,13 +11,13 @@ import tensorflow as tf
 
 from scripts.unet import get_unet_2D
 from scripts.loss_unet import focal_tversky_loss_c
-#from scripts.callbacks import MultiGPUModelCheckpoint
 from scripts.generators import SegmentationSequence
 from settings import target_size_unet,unet_classes, CUDA_VISIBLE_DEVICES
 
 os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES
 warnings.filterwarnings("ignore")
-    
+  
+# Train the model  
 def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights=None,
           gpus=1, learning_rate=0.01, num_convs=2, activation='relu', 
           upsamlping_modules=5, initial_features=16):
@@ -26,7 +26,8 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
     compression_channels = list(2**np.arange(int(np.log2(initial_features)),
                                              1+upsamlping_modules+int(np.log2(initial_features))))
     decompression_channels=sorted(compression_channels,reverse=True)[1:]
-
+    
+    # Load the data
     train_images_file = os.path.join(data_dir, 'train_images.npy')
     val_images_file = os.path.join(data_dir, 'val_images.npy')
     train_masks_file = os.path.join(data_dir, 'train_masks.npy')
@@ -99,7 +100,7 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
         else:
             print("*Lr ",1 * learning_rate)
             return learning_rate
-         
+    # create a learning rate scheduler     
     lr_scheduler = LearningRateScheduler(lr_func)
     
     train_generator = SegmentationSequence(images_train, masks_train, batch_size, jitter=True)
@@ -115,17 +116,6 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
                             min_lr=0.000001, 
                             verbose=1, 
                             mode='min')
-    
-    '''reduceLROnPlat = ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                                   patience=1, verbose=1, mode='min',
-                                   min_delta=0.0001, cooldown=0, min_lr=1e-8)
-    RRc = ReduceLROnPlateau(monitor = val_metric, 
-                            factor = 0.5, 
-                            patience = 15, 
-                            min_lr=0.000001, 
-                            verbose=1, 
-                            mode='max')
-                            '''
 
     print('Fitting model...')
 
@@ -135,9 +125,7 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
               shuffle=True, validation_steps=val_batches, validation_data=val_generator, use_multiprocessing=True,               
               workers=1, max_queue_size=40, callbacks=[keras_model_checkpoint, RRc, early])     
     
-    
     # Save the template model weights
     model.save_weights(os.path.join(output_dir, 'Top_Segmentation_Model_Weight.hdf5'))
-
 
     return model

@@ -15,7 +15,6 @@ class Calculater():
         self.y0, self.x0 = ndimage.center_of_mass(self.hull)
         self.calculate_maxferet()
         self.calculate_minferet()
-        #self.find_convexhull()
         self.calculate_minferet90()
         self.calculate_maxferet90()
 

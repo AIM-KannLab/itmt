@@ -11,7 +11,6 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import TensorBoard, LearningRateScheduler, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.models import model_from_json
 import tensorflow as tf
-import wandb
 from wandb.keras import WandbCallback
 
 from scripts.generators import SliceSelectionSequence
@@ -19,8 +18,7 @@ from scripts.densenet_regression import DenseNet
 from sklearn.model_selection import train_test_split
 from settings import CUDA_VISIBLE_DEVICES
 
-wandb.init(project="dense-net-tm", entity="zapaishchykova")
-
+#  Train the model
 def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
           load_weights=None, gpus=1, learning_rate=0.1, threshold=10.0,
           nb_layers_per_block=4, nb_blocks=4, nb_initial_filters=16,
@@ -29,13 +27,7 @@ def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
 
     args = locals()
     os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES
-    wandb.config = {
-        "learning_rate": learning_rate,
-        "epochs": epochs,
-        "batch_size": batch_size
-        }
-
-    
+   
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
     assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
     config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -138,7 +130,7 @@ def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
                             mode='min')
 
     # Compile multi-gpu model
-    loss = 'mean_squared_error'# or 'mean_absolute_error'
+    loss = 'mean_squared_error'
     parallel_model.compile(optimizer=Adam(lr=learning_rate), loss=loss)
 
     print('Starting training...')
@@ -146,7 +138,7 @@ def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
                                  epochs=epochs,
                                  shuffle=True, 
                                  validation_data=val_generator,  validation_steps=val_batches,
-                                 callbacks=[keras_model_checkpoint, RRc, WandbCallback()],
+                                 callbacks=[keras_model_checkpoint, RRc],
                                  use_multiprocessing=True,
                                  workers=64) 
     model.save_weights(os.path.join(output_dir, 'Top_Selection_Model_Weight.hdf5'))

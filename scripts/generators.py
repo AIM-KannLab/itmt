@@ -10,7 +10,7 @@ from imageio import imread
 from scipy.special import expit
 from skimage.transform import resize
 
-
+# This is a custom Keras Sequence class that is used to load and preprocess
 class SegmentationSequence(Sequence):
 
     def __init__(self, images, masks, batch_size, jitter=False):

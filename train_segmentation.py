@@ -12,12 +12,11 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description  =  'Train a Unet model on multiple classes')
     #the best one is z_segmentations_smaller
-    parser.add_argument('--data_dir', '-d',type = str, default = 'data/z_segmentations_pseudo', #'data/z_segmentations_2nd_unet', 
+    parser.add_argument('--data_dir', '-d',type = str, default = 'data/z_segmentations_pseudo',
                         help  =  'Directory in which the segmentation training data arrays are stored')
     parser.add_argument('--model_dir', '-m',type = str, default = 'model/unet_models/train', 
                         help = 'Location where trained models are to be stored')
-    
-    parser.add_argument('--epochs', '-e', type  =  int, default  =  40, help = 'number of training epochs')#40
+    parser.add_argument('--epochs', '-e', type  =  int, default  =  40, help = 'number of training epochs')
     parser.add_argument('--batch_size','-b', type  =  int, default  =  4, help = 'batch size')
     parser.add_argument('--load_weights','-w', help  =  'load weights in this file to initialise model')
     parser.add_argument('--name','-a', help  =  'trained model will be stored in a directory with this name')

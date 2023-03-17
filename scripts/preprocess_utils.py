@@ -18,6 +18,7 @@ import pandas as pd
 import shutil
 import itk
 
+# compute the intersection over union of two binary masks
 def iou(component1, component2):
     component1 = np.array(component1, dtype=bool)
     component2 = np.array(component2, dtype=bool)
@@ -28,6 +29,7 @@ def iou(component1, component2):
     IOU = overlap.sum()/float(union.sum())
     return IOU
 
+# helper function to get the id and path of the image and the mask
 def get_id_and_path(row, image_dir, nested = False, no_tms=True):
     patient_id, image_path, ltm_file, rtm_file = "","","",""
     if no_tms and row['Ok registered? Y/N'] == "N" :
@@ -62,6 +64,7 @@ def get_id_and_path(row, image_dir, nested = False, no_tms=True):
             image_path = t
     return patient_id, image_path, ltm_file, rtm_file
 
+# another helper function to get the id and path of the image and the mask, when the folder structure is different
 def get_id_and_path_not_nested(row, image_dir, masks_dir):
     patient_id, image_path, tm_file = 0,0,0
     if row['Ok registered? Y/N'] == "N":
@@ -87,12 +90,14 @@ def get_id_and_path_not_nested(row, image_dir, masks_dir):
 
     return patient_id, image_path, tm_file     
 
+# crop the image to the bounding box of the mask
 def crop_center(img,cropx,cropy):
     y,x = img.shape
     startx = x//2-(cropx//2)
     starty = y//2-(cropy//2)    
     return img[starty:starty+cropy,startx:startx+cropx]
 
+# find the file in the path
 def find_file_in_path(name, path):
     result = []
     result = list(filter(lambda x:name in x, path))
@@ -105,6 +110,7 @@ def find_file_in_path(name, path):
     else:
         return ""
 
+# perform the bias field correction
 def bias_field_correction(img):
     image = sitk.GetImageFromArray(img)
     maskImage = sitk.OtsuThreshold(image, 0, 1, 200)
@@ -127,7 +133,8 @@ def save_nii(data, path, affine):
 
 def denoise(volume, kernel_size=3):
     return medfilt(volume, kernel_size)
-    
+  
+# apply the windowing to the image   
 def apply_window(image, win_centre= 40, win_width= 400):
     range_bottom = 149 #win_centre - win_width / 2
     scale = 256 / 256 #win_width
@@ -136,9 +143,9 @@ def apply_window(image, win_centre= 40, win_width= 400):
     image = image * scale
     image[image < 0] = 0
     image[image > 255] = 255
-
     return image
 
+# rescale the intensity of the image and binning
 def rescale_intensity(volume, percentils=[0.5, 99.5], bins_num=256):
     #remove background pixels by the otsu filtering
     t = skimage.filters.threshold_otsu(volume,nbins=6)
@@ -158,6 +165,7 @@ def rescale_intensity(volume, percentils=[0.5, 99.5], bins_num=256):
     volume[np.where(volume > 0)] = obj_volume
     return volume
 
+# equalize the histogram of the image
 def equalize_hist(volume, bins_num=256):
     obj_volume = volume[np.where(volume > 0)]
     hist, bins = np.histogram(obj_volume, bins_num)
@@ -168,6 +176,7 @@ def equalize_hist(volume, bins_num=256):
     volume[np.where(volume > 0)] = obj_volume
     return volume
 
+# enhance the image
 def enhance(volume, kernel_size=3,
             percentils=[0.5, 99.5], bins_num=256, eh=True):
     try:
@@ -180,6 +189,7 @@ def enhance(volume, kernel_size=3,
     except RuntimeError:
         logging.warning('Failed enchancing')
 
+# enhance the image without bias field correction
 def enhance_noN4(volume, kernel_size=3,
             percentils=[0.5, 99.5], bins_num=256, eh=True):
     try:
@@ -194,6 +204,7 @@ def enhance_noN4(volume, kernel_size=3,
     except RuntimeError:
         logging.warning('Failed enchancing')
 
+# get the resampled image
 def get_resampled_sitk(data_sitk,target_spacing):
     new_spacing = target_spacing
 
@@ -216,28 +227,28 @@ def get_resampled_sitk(data_sitk,target_spacing):
                                 data_sitk.GetPixelIDValue())
 
     return img_sitk
-    
+
+# convert the nrrd file to nifty file  
 def nrrd_to_nifty(nrrd_file):
     _nrrd = nrrd.read(nrrd_file)
     data_f = _nrrd[0]
     header = _nrrd[1]
     return np.asarray(data_f), header
 
-
-    nib.save(nib.Nifti1Image(data, affine), path)
-    return
-
+# crop the brain from the image
 def crop_brain(var_img, mni_img):
         # invert brain mask 
         inverted_mask = np.invert(mni_img.astype(bool)).astype(float)
         mask_data = inverted_mask * var_img 
         return mask_data
 
+# normalize the image with the brain mask
 def brain_norm_masked(mask_data, brain_data, to_save=False):
     masked = crop_brain(brain_data, mask_data)
     enhanced = enhance(masked)
     return enhanced
 
+# enhance all the images in the path
 def enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to='data/denoised_mris/',\
     input_annotation_file = 'data/all_metadata.csv'):
 
@@ -256,6 +267,7 @@ def enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to='d
         sitk.WriteImage(image3,path_to+patient_id+'.nii') 
     return 
 
+# Z-enhance all the images in the path
 def z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to='data/z_scored_mris/',\
     input_annotation_file = 'data/all_metadata.csv', for_training=True, annotations=True):
     df = pd.read_csv(input_annotation_file,header=0)
@@ -290,11 +302,13 @@ def z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to=
             except:
                 continue
 
+# find the closest value in the list
 def closest_value(input_list, input_value):
     arr = np.asarray(input_list)
     i = (np.abs(arr - input_value)).argmin()
     return arr[i], i
 
+# find the centile of the input value
 def find_centile(input_tmt, age, df):
     #print("TMT:",input_tmt,"Age:", age)
     val,i=closest_value(df['x'],age)
@@ -319,6 +333,7 @@ def find_centile(input_tmt, age, df):
     #print(val,i,centile)
     return centile
 
+# find the exact percentile of the input value
 def find_exact_percentile_return_number(input_tmt, age, df):
     #print("TMT:",input_tmt,"Age:", age)
     val,i=closest_value(df['x'],age)
@@ -335,7 +350,7 @@ def find_exact_percentile_return_number(input_tmt, age, df):
     percentile = scipy.stats.norm.cdf(z)
     return round(percentile*100,2)
 
-
+# add median labels to boxplots
 def add_median_labels(ax, fmt='.1f'):
     lines = ax.get_lines()
     boxes = [c for c in ax.get_children() if type(c).__name__ == 'PathPatch']
@@ -351,7 +366,8 @@ def add_median_labels(ax, fmt='.1f'):
             path_effects.Stroke(linewidth=3, foreground=median.get_color()),
             path_effects.Normal(),
         ])
-        
+
+#register to a template        
 def register_to_template(input_image_path, output_path, fixed_image_path,create_subfolder=True):
     fixed_image = itk.imread(fixed_image_path, itk.F)
 
@@ -480,25 +496,11 @@ if __name__=="__main__":
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/bch_long_reg/',
                                      path_to='data/t1_mris/bch_long_reg_ench/',
                                      input_annotation_file = "data/Dataset_bch_long.csv",
-                                     for_training=False, annotations=False)
+                                     for_training=False, annotations=False)'''
     ## 28
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/28_reg/',
                                      path_to='data/t1_mris/28_reg_ench/',
                                      input_annotation_file = "data/Dataset_28.csv",
                                      for_training=False, annotations=False)
     
-    ## ***************long579
-    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/long579_reg/',
-                                     path_to='data/t1_mris/long579_reg_ench/',
-                                     input_annotation_file = "data/Dataset_long579.csv",
-                                     for_training=False, annotations=False)
-    ## downscaled2
-    z_enhance_and_debias_all_in_path(image_dir='data/rescaling_experiments/raw_down2_reg/',
-                                     path_to='/media/sda/Anna/TM2_segmentation/data/rescaling_experiments/raw_down2_reg_ench/',
-                                     input_annotation_file = "data/Dataset_down2.csv",
-                                     for_training=False, annotations=False)'''
-                                     
-    z_enhance_and_debias_all_in_path(image_dir='data/rescaling_experiments/raw_down4_reg/',
-                                     path_to='/media/sda/Anna/TM2_segmentation/data/rescaling_experiments/raw_down4_reg_ench/',
-                                     input_annotation_file = "data/Dataset_down4.csv",
-                                     for_training=False, annotations=False)
+    
