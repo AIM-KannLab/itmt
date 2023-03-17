@@ -65,8 +65,6 @@ def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
                 min_y,ind_min = y,i
             if y>=max_y:
                 max_y,ind_max = y,i
-        #print(min_y,contours[0][ind_min][0])
-        #print(max_y,contours[0][ind_max][0])
 
         fig, ax = plt.subplots(1,1,figsize=(5,5))
         ax.imshow(img_input, interpolation=None, cmap=plt.cm.Greys_r)
@@ -167,12 +165,14 @@ def predict_itmt(age = 9, gender="M",
     
     # load image
     threshold = 0.75
+    alpha = 0.8 
     os.environ['CUDA_VISIBLE_DEVICES'] = cuda_visible_devices
     image, affine = load_nii(img_path)
     print(nib.aff2axcodes(affine))
 
     # path to store registered image in
-    new_path_to = path_to+img_path.split("/")[-1].split(".")[0]
+    patient_id = img_path.split("/")[-1].split(".")[0]
+    new_path_to = path_to+patient_id
     if not os.path.exists(new_path_to):
         os.mkdir(new_path_to)
 
@@ -298,6 +298,29 @@ def predict_itmt(age = 9, gender="M",
     muscle_seg_1_filtered, area_1, cnt_1 = filter_islands(muscle_seg_1[0])
     muscle_seg_2_filtered, area_2, cnt_2 = filter_islands(muscle_seg_2[0])
 
+    ## save plots 
+    fg = plt.figure(figsize=(5, 5), facecolor='k')
+    I = cv2.normalize(image_array_2d[0], None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8U)
+    cv2.imwrite(path_to+"/"+patient_id+"_no_masks.png", I)
+    im = cv2.imread(path_to+"/"+patient_id+"_no_masks.png")                        
+    im_copy = im.copy()        
+    result = im.copy()
+    for cont in [cnt_1,cnt_2]: 
+        if len(cont)!=0:
+            if cv2.contourArea(cont) <= 1:
+                im_copy = cv2.drawContours(im_copy, [cont], -1, (0, 0, 255), -1)
+            else:
+                im_copy = cv2.drawContours(im_copy, [cont], -1, (51, 197, 255), -1)
+    filled = cv2.addWeighted(im, alpha, im_copy, 1-alpha, 0)
+    for cont in [cnt_1,cnt_2]: 
+        if len(cont)!=0:
+            if cv2.contourArea(cont) <= 1:
+                result = cv2.drawContours(filled, [cont], -1, (0, 0, 255), 0)
+            else:
+                result = cv2.drawContours(filled, [cont], -1, (51, 197, 255), 0)
+
+    cv2.imwrite(path_to+"/"+patient_id+"_mask.png", result)
+            
     # rescale for the unet
     infer_seg_array_2d_1 = rescale(muscle_seg_1[0],1/scaling_factor)
     infer_seg_array_2d_2 = rescale(muscle_seg_2[0],1/scaling_factor)

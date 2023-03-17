@@ -1,7 +1,5 @@
-#docker build -t itmt -f Dockerfile . --no-cache
+#cd docker && docker build -t itmt -f Dockerfile . 
 #docker run --gpus all -it itmt
-#sudo docker run -it --gpus all itmt python3.9 ./main.py --age 9
-#sudo docker run -it --gpus all -v local:/out itmt python3.9 ./main.py --age 9 --datasource out/file.nii
 FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04
 ENV TZ=US/Eastern
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -37,5 +35,4 @@ COPY main.py /
 COPY predict.py /
 COPY settings.py /
 COPY compute_population_pred.py /
-#CMD [ "python3.9", "./main.py" ]
-ENTRYPOINT [ "python3.9", "./main.py" ]
+CMD [ "python3.9", "./main.py" ]
