@@ -32,8 +32,14 @@ Link to the centiles web-page: /link
 'cd docker'
 'docker build -t itmt -f Dockerfile . --no-cache'
 
-3. To run docker:
+3. To run docker on example MRI:
 'docker run --gpus all -it itmt'
+
+4. To run docker on your own MRI:
+'docker run -it --gpus all -v local_folder_with_nii_path:/out itmt python3.9 ./main.py --age X --gender X --img_path out/file.nii --output out'
+- local_folder_with_nii_path is the path to the folder with your MRIa and file.nii is the name of the MRI file; it is also the path to the output folder where the results will be saved.
+- in '--age X', X should be replaced with the age of the subject in years
+- in '--gender X', X should be M or F, a biological gender of the subject
 
 ## To retrain on your own MRI dataset: 
 **Prerequisites: conda, gpu** 
@@ -65,7 +71,7 @@ Link to the centiles web-page: /link
 - Move the final 'Top_Weights.hdf' into the test folder and modify if you change paths
 - Eval 'python test_segmentation.py -u True' if metrics measurements are needed
 
-4. To compute CSA for all images in folder:
+4. To compute CSA/TMT for all images in folder:
 - Curate the dataset and run preprocessing rescale_healthy.py
 - Run compute_csa_by_path.py which will output the .csv with the predicted slice and TM measurements
 

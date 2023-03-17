@@ -1,0 +1,52 @@
+# python cache
+.cache/
+__pycache__/**/*
+__pycache__
+*.pyc
+
+# python distribution
+build/**/*
+build
+dist/**/*
+dist
+mriqc.egg-info/**/*
+mriqc.egg-info
+.eggs/**/*
+.eggs
+src/**/*
+src/
+notebooks/
+.maint/
+.maint/**/*
+
+# releasing
+Makefile
+
+# git
+.github/
+.gitignore
+.gitattributes
+.git/**/*
+.git
+
+# Maintenance
+.circleci/
+.maint/
+.codecov.yml
+.coveragerc
+.pep8speaks.yml
+.pylintrc
+.readthedocs.yaml
+.travis.yml
+.zenodo.json
+CONTRIBUTING.md
+codecov.yml
+docs
+docs/**/*
+long_description.rst
+notebooks
+notebooks/**/*
+requirements-dev.txt
+requirements.txt
+venv/
+venv/**/*
