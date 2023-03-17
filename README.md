@@ -22,7 +22,7 @@ Link to the centiles web-page: /link
 
 5. Download Weights from /link and place into /path
 
-5. For demo on TM pipeline launch jupyter notebook `demo_notebook.ipynb` inside conda enviroment
+5. For demo on TM pipeline launch jupyter notebook `example_notebooks/demo_notebook.ipynb` inside conda enviroment
 
 ## Quick Start - Docker(single MRI T1 inference)
 **Prerequisites: conda, gpu, docker** 
