@@ -7,6 +7,10 @@ Link to the centiles web-page: /link
 ![Main figure](pics/main_image.png)
 **Not intended for clinical use.**
 
+## Hardware requirements
+This repository was developed and tested on the following hardware:
+- Ubuntu 22.04.1 LTS, 1x Nvidia RTX A6000 GPU
+
 ## Quick Start - No Docker (single MRI T1 inference)
 **Prerequisites: conda, gpu** 
 
@@ -22,9 +26,9 @@ Link to the centiles web-page: /link
 
 5. Download Weights from /link and place into /path
 
-5. For demo on TM pipeline launch jupyter notebook `example_notebooks/demo_notebook.ipynb` inside conda enviroment
+5. For demo on TM pipeline launch jupyter notebook `example_notebooks/demo_notebook.ipynb` inside conda enviroment. Estimated inference time: 1-2 minutes
 
-## Quick Start - Docker(single MRI T1 inference)
+## Quick Start - Docker(single MRI T1 inference), estimated time for set up: 5-10 minutes
 **Prerequisites: conda, gpu, docker** 
 1. Clone repo `git clone`
 
