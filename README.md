@@ -1,4 +1,5 @@
 # Automated Deep Learning TM-segmentation project
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8361032.svg)](https://doi.org/10.5281/zenodo.8361032)
 
 Link to the centiles web-page: [itmt-icsa.streamlit.app](https://itmt-icsa.streamlit.app/)
 
