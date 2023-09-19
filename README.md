@@ -1,8 +1,9 @@
 # Automated Deep Learning TM-segmentation project
 
-Link to the centiles web-page: /link
+Link to the centiles web-page: [itmt-icsa.streamlit.app](https://itmt-icsa.streamlit.app/)
 
-**If you publish any work which uses this package, please cite the following publication**: /link
+**If you publish any work which use![image](https://github.com/AIM-KannLab/itmt/assets/17569461/1d92fe33-f148-4503-bdb0-286da251492e)
+s this package, please cite the following publication**: /link
 
 ![Main figure](pics/main_image.png)
 **Not intended for clinical use.**
