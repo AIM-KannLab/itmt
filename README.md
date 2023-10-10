@@ -63,8 +63,6 @@ OR
 
 4. Modify settings (for example available GPUs) in `settings.py`
 
-5. Download Weights from /link and place into /path
-
 5. For demo on TM pipeline launch jupyter notebook `example_notebooks/demo_notebook.ipynb` inside conda enviroment. Estimated inference time: 5 minutes
 
 ## To retrain on your own MRI dataset: 
