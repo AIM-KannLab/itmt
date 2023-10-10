@@ -72,7 +72,7 @@ for idx in range(0, df_xls.shape[0]):
         continue
     
 df_etnic = pd.DataFrame(list_etnic,columns=['id','Age','gender','Total house income','TMT PRED AVG filtered'])            
-df_etnic['Income Above $50,000'] = (df_etnic['Age']>=7) & (df_etnic['Total house income']<=10)          
+df_etnic['Income Above $50,000'] = (df_etnic['Total house income']>=7) & (df_etnic['Total house income']<=10)          
 df_etnic.to_csv(path_or_buf= "data/ABCD-studies/abcdabcd_lpds01_income.csv")
 
 ## ACTIVITY
@@ -86,7 +86,6 @@ def to_number(input_x):
         return 0
     else:
         return float(input_x)
-    
 list_ph_act = []
 
 # Light total = ipaq_light_acts * (ipaq_light_acts_min/60 + ipaq_light_acts_hrs)

@@ -14,6 +14,9 @@ from scripts.loss_unet import focal_tversky_loss_c
 from scripts.generators import SegmentationSequence
 from settings import target_size_unet,unet_classes, CUDA_VISIBLE_DEVICES
 
+import wandb
+from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
+
 os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES
 warnings.filterwarnings("ignore")
   
@@ -27,6 +30,22 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
                                              1+upsamlping_modules+int(np.log2(initial_features))))
     decompression_channels=sorted(compression_channels,reverse=True)[1:]
     
+    # Start a run, tracking hyperparameters
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="seg-tmt",
+
+        # track hyperparameters and run metadata with wandb.config
+        config={
+            "learning_rate": learning_rate,
+            "epoch": epochs,
+            "batch_size": batch_size,
+            "activation": activation,
+            "data_dir": data_dir,
+            "model_dir": model_dir,
+        }
+    )
+
     # Load the data
     train_images_file = os.path.join(data_dir, 'train_images.npy')
     val_images_file = os.path.join(data_dir, 'val_images.npy')
@@ -108,7 +127,7 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
 
     parallel_model.compile(optimizer=Adam(lr=learning_rate), loss=focal_tversky_loss_c)
     
-    early = EarlyStopping(monitor="val_loss", mode="min", verbose=2, patience=10) 
+    early = EarlyStopping(monitor="val_loss", mode="min", verbose=2, patience=5) 
     
     RRc = ReduceLROnPlateau(monitor = "val_loss", 
                             factor = 0.5, 
@@ -121,9 +140,18 @@ def train(data_dir, model_dir, name=None, epochs=100, batch_size=1, load_weights
 
     keras_model_checkpoint = ModelCheckpoint(weights_path, monitor='val_loss', save_best_only=True)
     
-    parallel_model.fit_generator(train_generator, train_batches, epochs=epochs,
-              shuffle=True, validation_steps=val_batches, validation_data=val_generator, use_multiprocessing=True,               
-              workers=1, max_queue_size=40, callbacks=[keras_model_checkpoint, RRc, early])     
+    parallel_model.fit_generator(train_generator, 
+                                 train_batches, 
+                                 epochs=epochs,
+                                shuffle=True, 
+                                validation_steps=val_batches,
+                                validation_data=val_generator,
+                                use_multiprocessing=True,               
+                                workers=1, 
+                                max_queue_size=40, 
+                                callbacks=[keras_model_checkpoint,
+                                            RRc, early,
+                                            WandbMetricsLogger(log_freq=5)])     
     
     # Save the template model weights
     model.save_weights(os.path.join(output_dir, 'Top_Segmentation_Model_Weight.hdf5'))

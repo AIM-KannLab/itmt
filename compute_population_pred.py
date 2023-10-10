@@ -4,7 +4,7 @@ import glob, os, functools
 import sys
 import gc
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "3"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         
 import SimpleITK as sitk
@@ -43,9 +43,9 @@ import warnings
 ## this is a file for computing the population prediction in batch
 
 #path to ench and registered file
-image_dir ='data/t1_mris/28_reg_ench/z/'
-input_annotation_file = 'data/Dataset_28.csv'
-output_dir = 'data/t1_mris/'
+image_dir ='data/t1_mris/cbtn_reg_ench/z/' #'data/t1_mris/uscf_reg_ench/z/'
+input_annotation_file = 'data/Dataset_cbtn.csv' #'data/Dataset_ucsf.csv'
+output_dir = 'data/outputs/'
     
 warnings.filterwarnings('ignore')
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -53,8 +53,8 @@ assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
     
 # model paths                                   
-model_weight_path_segmentation = 'model/unet_models/test/Top_Segmentation_Model_Weight.hdf5'
-model_weight_path_selection = 'model/densenet_models/test/brisk-pyramid.hdf5'
+model_weight_path_segmentation = 'model/unet_models/test/itmt1.hdf5'
+model_weight_path_selection = 'model/densenet_models/test/itmt1.hdf5'
 
 split_name = 'test'
 measure_iou = True
@@ -77,7 +77,7 @@ def get_metadata(row, image_dir):
     patient_id =  patient_id.split("/")[-1]
     path = patient_id.split("/")[-1]    
     scan_folder = image_dir+path
-
+    print(scan_folder)
     if os.path.exists(scan_folder):
         for file in os.listdir(scan_folder):
             t = image_dir+path+"/"+file
@@ -125,7 +125,7 @@ def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
         return 100
 
 ## make 4 predictions over the same segment
-def major_voting(image_array_2d,model_segmentation):
+def major_voting(image_array_2d, model_segmentation):
     img_half_11 = np.concatenate((image_array_2d[:,:256,:,:],np.zeros_like(image_array_2d[:,:256,:,:])),axis=1)
     img_half_21 = np.concatenate((np.zeros_like(image_array_2d[:,:256,:,:]),image_array_2d[:,:256,:,:]),axis=1)
     img_half_12 = np.concatenate((np.zeros_like(image_array_2d[:,256:,:,:]),image_array_2d[:,256:,:,:]),axis=1)
@@ -278,6 +278,7 @@ if __name__=="__main__":
             # rescale image into 512x512 for unet 
             image_array_2d = rescale(image_array[:,15:-21,slice_label], scaling_factor).reshape(1,target_size_unet[0],target_size_unet[1],1) 
                 
+            print(major_voting)
             if major_voting == False:
                 img_half_1 = np.concatenate((image_array_2d[:,:256,:,:],np.zeros_like(image_array_2d[:,:256,:,:])),axis=1)
                 img_half_2 = np.concatenate((np.zeros_like(image_array_2d[:,256:,:,:]),image_array_2d[:,256:,:,:]),axis=1)
@@ -296,6 +297,15 @@ if __name__=="__main__":
             muscle_seg_2_filtered, area_2, cnt_2 = filter_islands(muscle_seg_2[0])
 
             ## save plots 
+            if os.path.exists(output_dir+"/pics/")==False:
+                os.mkdir(output_dir+"/pics/")
+            if os.path.exists(output_dir+"/pics/no_masks/")==False:
+                os.mkdir(output_dir+"/pics/no_masks/")
+            if os.path.exists(output_dir+"/pics/masks/")==False:
+                os.mkdir(output_dir+"/pics/masks/")
+            if os.path.exists(output_dir+"/pics/niftis/")==False:
+                os.mkdir(output_dir+"/pics/niftis/")
+                
             fg = plt.figure(figsize=(5, 5), facecolor='k')
             I = cv2.normalize(image_array_2d[0], None, 255, 0, cv2.NORM_MINMAX, cv2.CV_8U)
             cv2.imwrite(output_dir+"/pics/no_masks/"+str(dataset)+"_"+patient_id+".png", I)
@@ -346,6 +356,7 @@ if __name__=="__main__":
             gc.collect()
            
     # save metrics 
+    print(list_csa)
     df = pd.DataFrame(np.asarray(list_csa))
     df.to_csv(output_dir+"csa_population_"+str(dataset)+".csv", 
                                             header=["ID",

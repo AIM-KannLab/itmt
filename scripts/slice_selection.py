@@ -11,7 +11,9 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import TensorBoard, LearningRateScheduler, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.models import model_from_json
 import tensorflow as tf
-from wandb.keras import WandbCallback
+import wandb
+from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
+
 
 from scripts.generators import SliceSelectionSequence
 from scripts.densenet_regression import DenseNet
@@ -32,6 +34,21 @@ def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
     assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
     config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
     
+    wandb.init(
+    # set the wandb project where this run will be logged
+    project="slice-select-itmt2",
+        
+        # track hyperparameters and run metadata
+        config={
+            "learning_rate": learning_rate,
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "activation": activation,
+            
+        }
+    )
+
+
     # Set up dataset
     train_image_dir = os.path.join(data_dir, 'train')
     val_image_dir = os.path.join(data_dir, 'val')
@@ -111,17 +128,6 @@ def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
     parallel_model = model
     keras_model_checkpoint = ModelCheckpoint(weights_path, monitor='val_loss', save_best_only=True)
 
-    # Set up the learning rate scheduler
-    def lr_func(e):
-        print("Learning Rate Update at Epoch", e)
-        if e > 0.75 * epochs:
-            return 0.01 * learning_rate
-        elif e > 0.5 * epochs:
-            return 0.1 * learning_rate
-        else:
-            return learning_rate
-
-    lr_scheduler = LearningRateScheduler(lr_func)
     RRc = ReduceLROnPlateau(monitor = "val_loss", 
                             factor = 0.5, 
                             patience = 3, 
@@ -138,7 +144,9 @@ def train(data_dir, model_dir, epochs=10, name=None, batch_size=16,
                                  epochs=epochs,
                                  shuffle=True, 
                                  validation_data=val_generator,  validation_steps=val_batches,
-                                 callbacks=[keras_model_checkpoint, RRc],
+                                 callbacks=[keras_model_checkpoint, 
+                                            RRc,
+                                            WandbMetricsLogger(log_freq=3)],
                                  use_multiprocessing=True,
                                  workers=64) 
     model.save_weights(os.path.join(output_dir, 'Top_Selection_Model_Weight.hdf5'))

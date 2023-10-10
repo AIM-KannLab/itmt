@@ -64,10 +64,14 @@ summary(m_gaic_bcto_boys)
 #               coef. of kurtosis  =  3.117666 
 #Filliben correlation coefficient  =  0.9986659 
 #******************************************************************
+#from 1 to 100
+#cent <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35)
 
-label_perc_boys <- centiles.pred(m_gaic_bcto_boys, xvalues=max(data_perc_boys1$x), xname= "x", cent = c(3, 10, 25, 50, 75, 90, 97))
+cent <- seq(1, 99)
+
+label_perc_boys <- centiles.pred(m_gaic_bcto_boys, xvalues=max(data_perc_boys1$x), xname= "x",cent=cent)
 x_values_boys <- seq(round(min(data_perc_boys1$x),1), round(max(data_perc_boys1$x),1), length.out = 100)
-centile_values_boys <- centiles.pred(m_gaic_bcto_boys, xname="x", xvalues=x_values_boys, cent = c(3, 10, 25, 50, 75, 90, 97))
+centile_values_boys <- centiles.pred(m_gaic_bcto_boys, xname="x", xvalues=x_values_boys,cent=cent)
 resid_m_boys <- centiles.pred(m_gaic_bcto_boys, xname="x", xvalues=data_perc_boys1$x, yval=data_perc_boys1$y, type="z-scores")
 
 lms_values_boys <- predictAll(m_gaic_bcto_boys, newdata=data.frame(x=x_values_boys))
@@ -135,10 +139,12 @@ plot(m_gaic_bcto_girls,par=newpar)
 #Filliben correlation coefficient  =  0.9979028
 #******************************************************************
 summary(m_gaic_bcto_girls)
+cent <- seq(1, 99)
 
-label_perc_girls<- centiles.pred(m_gaic_bcto_girls, xvalues=max(data_perc_girls1$x), xname= "x", cent = c(3, 10, 25, 50, 75, 90, 97))
+
+label_perc_girls<- centiles.pred(m_gaic_bcto_girls, xvalues=max(data_perc_girls1$x), xname= "x", cent =cent)
 x_values_girls <- seq(round(min(data_perc_girls1$x),1), round(max(data_perc_girls1$x),1), length.out = 100)
-centile_values_girls <- centiles.pred(m_gaic_bcto_girls, xname="x", xvalues=x_values_girls, cent = c(3, 10, 25, 50, 75, 90, 97))
+centile_values_girls <- centiles.pred(m_gaic_bcto_girls, xname="x", xvalues=x_values_girls, cent = cent)
 resid_m_girls<- centiles.pred(m_gaic_bcto_girls, xname="x", xvalues=data_perc_girls1$x, yval=data_perc_girls1$y, type="z-scores")
 
 lms_values_boys <- predictAll(m_gaic_bcto_girls, newdata=data.frame(x=x_values_girls))

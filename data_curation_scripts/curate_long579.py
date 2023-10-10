@@ -13,9 +13,9 @@ from scripts.preprocess_utils import find_file_in_path, register_to_template
 
 # load metadata file  
 
-input_annotation_file = '/media/sda/Anna/long579/ds003604-download/participants.tsv'   
+input_annotation_file = '/media/sda/Anna/brain_datasets/long579/ds003604-download/participants.tsv'   
 df = pd.read_csv(input_annotation_file, header=0,delimiter='\t')
-input_path = "/media/sda/Anna/long579/ds003604-download/"
+input_path = "/media/sda/Anna/brain_datasets/long579/ds003604-download/"
 save_to = 'data/t1_mris/long579_reg/'
 
 age_ranges = {"data/golden_image/mni_templates/nihpd_asym_04.5-08.5_t1w.nii" : {"min_age":3, "max_age":7},
@@ -26,6 +26,7 @@ final_metadata = []
 #print(df)
 #df = df.dropna(subset=['ses-5_date_ST', 'ses-7_date_ST','ses-9_date_ST'])
 age_lst = [5,7,9]
+already_processed = []
 # leave onlyt those that have 3 scans
 for idx in range(0,df.shape[0]):
     row = df.iloc[idx]
@@ -36,7 +37,7 @@ for idx in range(0,df.shape[0]):
         sex = 1
     print(str(row['participant_id']))
     for filepath in os.listdir(input_path):
-        if str(row['participant_id']) in str(filepath) :
+        if str(row['participant_id']) in str(filepath) and filepath not in already_processed:
             print(filepath)
             for age in age_lst:  
                 try:
@@ -50,8 +51,10 @@ for idx in range(0,df.shape[0]):
                                     final_metadata.append([int(age*12),sex,save_to+"/"+filepath,input_path+filepath+"/ses-"+str(age)+"/anat/"+mri_t1,'LONG579'])
                 except:
                     continue
+            already_processed.append(filepath)
+            
                             #0,AGE_M,SEX,SCAN_PATH,Filename,dataset
                         #final_metadata.append([int(age*12),sex,save_to+"/"+filepath,filepath+"_run-1_T1w.nii.gz",'AOMIC'])
+            
 df = pd.DataFrame(final_metadata)
 df.to_csv(path_or_buf= "data/Dataset_long579.csv",header = ['AGE_M','SEX','SCAN_PATH','Filename','dataset'])
-

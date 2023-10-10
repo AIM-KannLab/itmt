@@ -281,6 +281,8 @@ def z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to=
         row = df.iloc[idx]
         patient_id, image_path, tm_file, _ = get_id_and_path(row, image_dir, nested=False, no_tms=for_training)
         print(patient_id, len(image_path), tm_file, path_to)
+        if not os.path.isdir(path_to):
+            os.mkdir(path_to)
         if not os.path.isdir(path_to+"no_z"):
             os.mkdir(path_to+"no_z")
         if not os.path.isdir(path_to+"z"):
@@ -291,7 +293,7 @@ def z_enhance_and_debias_all_in_path(image_dir='data/mni_templates_BK/',path_to=
             image_array  = sitk.GetArrayFromImage(image_sitk)
             print(len(image_array))
             try:
-                image_array = enhance_noN4(image_array)
+                image_array = enhance_noN4(image_array)#enhance_noN4(image_array)
                 image3 = sitk.GetImageFromArray(image_array)
                 sitk.WriteImage(image3,path_to+"no_z/"+patient_id+'.nii') 
                 os.mkdir(path_to+"z/"+patient_id)
@@ -333,22 +335,20 @@ def find_centile(input_tmt, age, df):
     #print(val,i,centile)
     return centile
 
-# find the exact percentile of the input value
+
+
 def find_exact_percentile_return_number(input_tmt, age, df):
-    #print("TMT:",input_tmt,"Age:", age)
-    val,i=closest_value(df['x'],age)
-    
-    mu = df.iloc[i]['mu']
-    sigma = df.iloc[i]['sigma']
-    nu = df.iloc[i]['nu']
-    #tau = df.iloc[i]['tau']
-    
-    if nu!=0:
-        z = ((input_tmt/mu)**(nu)-1)/(nu*sigma)
-    else:
-        z = 1/sigma * math.log(input_tmt/mu)
-    percentile = scipy.stats.norm.cdf(z)
-    return round(percentile*100,2)
+    # Find closest age 
+    val,i = closest_value(df['x'], age)
+    # Extract centile columns
+    cents = ['X'+str(x) for x in range(1,100)]
+    # Use loc to get series
+    df_cent = df.iloc[i].loc[cents] 
+    val,i = closest_value(df_cent, input_tmt)
+    # Sort
+    centile = df_cent.index[i].replace('X','')
+    return centile
+
 
 # add median labels to boxplots
 def add_median_labels(ax, fmt='.1f'):
@@ -398,7 +398,24 @@ def register_to_template(input_image_path, output_path, fixed_image_path,create_
             print("Registered ", image_id)
         except:
             print("Cannot transform", input_image_path.split("/")[-1])
-        
+
+def register_to_template_cmd(input_image_path, output_path, fixed_image_path,rename_id,create_subfolder=True):
+    if "nii" in input_image_path and "._" not in input_image_path:
+        try:
+            return_code = subprocess.call("elastix -f "+fixed_image_path+" -m "+input_image_path+" -out "+\
+            output_path + " -p data/golden_image/mni_templates/Parameters_Rigid.txt", shell=True,\
+            stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            if return_code == 0:
+                print("Registered ", rename_id)
+                result_image = itk.imread(output_path+'/result.0.mhd',itk.F)
+                itk.imwrite(result_image, output_path+"/"+rename_id+".nii.gz")
+            else:
+                print("Error registering ", rename_id)
+                return_code = 1
+        except:
+            print("is elastix installed?")
+            return_code = 1
+                  
 if __name__=="__main__":
     # replace header with ,AGE_M,SEX,SCAN_PATH,Filename,dataset
     '''
@@ -496,11 +513,21 @@ if __name__=="__main__":
     z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/bch_long_reg/',
                                      path_to='data/t1_mris/bch_long_reg_ench/',
                                      input_annotation_file = "data/Dataset_bch_long.csv",
-                                     for_training=False, annotations=False)'''
+                                     for_training=False, annotations=False)
     ## 28
-    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/28_reg/',
-                                     path_to='data/t1_mris/28_reg_ench/',
-                                     input_annotation_file = "data/Dataset_28.csv",
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/uscf_reg/',
+                                     path_to='data/t1_mris/uscf_reg_ench/',
+                                     input_annotation_file = "data/Dataset_ucsf.csv",
+                                     for_training=False, annotations=False)
+    ## BCH long masked test
+    z_enhance_and_debias_all_in_path(image_dir='data/bch_long_pre_test/reg/',
+                                     path_to='data/bch_long_pre_test/reg_ench/',
+                                     input_annotation_file = "data/Dataset_bch_long_pre_test.csv",
+                                     for_training=False, annotations=False)'''
+    ## Long579
+    z_enhance_and_debias_all_in_path(image_dir='data/t1_mris/abcd_new2023_reg/',
+                                     path_to='data/t1_mris/abcd_new2023_reg_ench/',
+                                     input_annotation_file = "data/Dataset_abcd_new2023.csv",
                                      for_training=False, annotations=False)
     
     

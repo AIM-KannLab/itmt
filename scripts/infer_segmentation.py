@@ -17,9 +17,10 @@ import cv2
 
 from scripts.preprocess_utils import load_nii, save_nii, iou, crop_center, find_file_in_path, get_id_and_path
 from scripts.unet import get_unet_2D
-from settings import target_size_unet, unet_classes, softmax_threshold,major_voting,scaling_factor
+from settings import target_size_unet, unet_classes,major_voting, softmax_threshold,scaling_factor
+major_voting_flag=major_voting
 from scripts.feret import Calculater
-from compute_population_pred import major_voting, measure_tm, filter_islands,compute_crop_line
+from compute_population_pred import  measure_tm, major_voting, filter_islands,compute_crop_line
 
 
 def single_dice_coef(y_true, y_pred_bin):
@@ -61,20 +62,15 @@ def dice_coef(y_true, y_pred):
 def get_metadata(row, image_dir):
     patient_id, image_path, age, gender = "","","",""
     patient_id = str(row['Filename']).split(".")[0]
-    age =  row['AGE_M'] #// 12 #//12
-    gender =row['Sex']# row['SEX'] #row['Sex']
-    path = find_file_in_path(patient_id, os.listdir(image_dir))
+
+    try:
+        gender =row['Sex']# row['SEX'] #row['Sex']
+        age =  row['AGE_M'] 
+    except:
+        gender = row['SEX']
+        age =  row['AGE_M'] 
     
-    patient_id =  patient_id.split("/")[-1]
-    path = patient_id.split("/")[-1]    
-    scan_folder = image_dir+path
-    print(age)
-    if os.path.exists(scan_folder):
-        for file in os.listdir(scan_folder):
-            t = image_dir+path+"/"+file
-            if patient_id in file:
-                image_path = t
-    return age, gender
+    return age, gender, 
 
 # test the model
 def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
@@ -110,10 +106,11 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
             seg_data, seg_affine = load_nii(tm_file)
             
             # check the orientation of the image
-            if (np.asarray(nib.aff2axcodes(seg_affine))==['R', 'A', 'S']).all():
+            if (np.asarray(nib.aff2axcodes(seg_affine))==['L', 'P', 'S']).all() or\
+                    (np.asarray(nib.aff2axcodes(seg_affine))==['R', 'A', 'S']).all():
                 slice_label = np.asarray(np.where(seg_data != 0)).T[0, 2] 
                 image_array, affine = load_nii(image_path)
-            elif (np.asarray(nib.aff2axcodes(seg_affine))==['L', 'P', 'S']).all():
+            ''' elif (np.asarray(nib.aff2axcodes(seg_affine))==['L', 'P', 'S']).all():
                 # check the orientation you wanna reorient.
                 # todo: create a function
                 ornt = np.array([[0, -1],
@@ -130,7 +127,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
                 seg_data, seg_affine  = seg.get_fdata(), seg.affine
                 
                 slice_label = np.asarray(np.where(seg_data != 0)).T[0, 2] 
-            
+            '''
             # create empty arrays        
             infer_seg_array_3d_1,infer_seg_array_3d_2 = np.zeros(image_array.shape),np.zeros(image_array.shape)
             infer_seg_array_3d_1_filtered,infer_seg_array_3d_2_filtered = np.zeros(image_array.shape),np.zeros(image_array.shape)
@@ -143,7 +140,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
             img_half_2 = np.concatenate((np.zeros_like(image_array_2d[:,256:,:,:]),image_array_2d[:,256:,:,:]),axis=1)
 
             # predict the segmentation and filter the segmentation
-            if major_voting ==False:
+            if major_voting_flag ==False:
                 infer_seg_array_1 = model.predict(img_half_1)
                 infer_seg_array_2 = model.predict(img_half_2)
 
@@ -156,12 +153,12 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
             fg=plt.figure(figsize=(5, 5), facecolor='k')
             plt.imshow(image_array_2d[0],'gray')
             plt.imshow(muscle_seg_1[0], 'gray', alpha=0.4, interpolation='none')
-            plt.savefig(output_dir+"/pics/"+patient_id+"_1.png")
+            #plt.savefig(output_dir+"/pics/"+patient_id+"_1.png")
 
             fg=plt.figure(figsize=(5, 5), facecolor='k')
             plt.imshow(image_array_2d[0],'gray')
             plt.imshow(muscle_seg_2[0], 'gray', alpha=0.4, interpolation='none')
-            plt.savefig(output_dir+"/pics/"+patient_id+"_2.png")
+            #plt.savefig(output_dir+"/pics/"+patient_id+"_2.png")
             
             # filter islands
             muscle_seg_1_filtered, area_1, cnt_1 = filter_islands(muscle_seg_1[0])
@@ -207,7 +204,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
             concated = np.concatenate((infer_seg_array_2d_1_filtered[:100,:,0],infer_seg_array_2d_2_filtered[100:,:,0]),axis=0)    
             infer_seg_array_3d_merged_filtered[:,:,slice_label] = np.pad(concated,[[0,0],[15,21]],'constant',constant_values=0)
             infer_3d_path = output_dir+"/pics/"+patient_id + '_AI_seg.nii.gz'
-            save_nii(infer_seg_array_3d_merged_filtered, infer_3d_path, affine)
+            #save_nii(infer_seg_array_3d_merged_filtered, infer_3d_path, affine)
                 
             # measure TM
             if measure_iou:
@@ -255,7 +252,7 @@ def test(image_dir, model_weight_path, slice_csv_path, output_dir, measure_iou):
     df_dices.to_csv("data/dices.csv", header=["ID","Gender", "Age", "Slice label",
                                               'Dice1','Dice2'])
     
-    df.to_csv(output_dir+"csa.csv", header=["ID","Gender", "Age", "Slice label",
+    df.to_csv(output_dir+"csa_health.csv", header=["ID","Gender", "Age", "Slice label",
                                             ## GT
                                             "CSA GT TM1","CSA GT TM2",
                                             "CSA GT SUM", 

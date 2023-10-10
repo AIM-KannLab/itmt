@@ -26,13 +26,12 @@ from matplotlib.patches import Ellipse
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2 
-  
-from compute_population_pred import major_voting, measure_tm, filter_islands,compute_crop_line  
+   
 from scripts.densenet_regression import DenseNet
 from scripts.unet import get_unet_2D
-from scripts.preprocess_utils import load_nii,save_nii, find_file_in_path,iou, register_to_template,enhance_noN4,crop_center, get_id_and_path
+from scripts.preprocess_utils import load_nii, save_nii, find_file_in_path,iou,enhance_noN4, crop_center, get_id_and_path
 from scripts.feret import Calculater
-from settings import  target_size_dense_net, target_size_unet, unet_classes, softmax_threshold, major_voting,scaling_factor
+from settings import target_size_dense_net, target_size_unet, unet_classes, softmax_threshold, scaling_factor
 from scripts.infer_selection import get_slice_number_from_prediction, funcy
 import warnings
 
@@ -43,10 +42,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 age_ranges = {"golden_image/mni_templates/nihpd_asym_04.5-08.5_t1w.nii" : {"min_age":3, "max_age":7},
                 "golden_image/mni_templates/nihpd_asym_07.5-13.5_t1w.nii": {"min_age":8, "max_age":13},
                 "golden_image/mni_templates/nihpd_asym_13.0-18.5_t1w.nii": {"min_age":14, "max_age":35}}
-
-physical_devices = tf.config.experimental.list_physical_devices('GPU')
-assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
-config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # function to compute the crop line (max and min y coordinates of the contour)
 def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
@@ -81,7 +76,24 @@ def compute_crop_line(img_input,infer_seg_array_2d_1,infer_seg_array_2d_2):
         return crop_line
     else:
         return 100
-  
+ 
+
+def find_exact_centile(input_tmt, age, df):
+    # Find closest age 
+    val,i = closest_value(df['x'], age)
+    # Extract centile columns
+    cents = ['X'+str(x) for x in range(1,100)]
+    # Use loc to get series
+    df_cent = df.iloc[i].loc[cents] 
+    val,i = closest_value(df_cent, input_tmt)
+    # Sort
+    centile = df_cent.index[i].replace('X','')
+    if centile == '1':
+        centile = '<1'
+    if centile == '99':
+        centile = '>99'
+    return centile
+ 
 # function to select the correct MRI template based on the age  
 def select_template_based_on_age(age):
     for golden_file_path, age_values in age_ranges.items():
@@ -89,61 +101,31 @@ def select_template_based_on_age(age):
             #print(golden_file_path)
             return golden_file_path
    
+
 # register the MRI to the template     
-def register_to_template(input_image_path, output_path, fixed_image_path,rename_id,create_subfolder=True):
-    fixed_image = itk.imread(fixed_image_path, itk.F)
-
-    # Import Parameter Map
-    parameter_object = itk.ParameterObject.New()
-    parameter_object.AddParameterFile('golden_image/mni_templates/Parameters_Rigid.txt')
-
+def register_to_template_cmd(input_image_path, output_path, fixed_image_path,rename_id,create_subfolder=True):
     if "nii" in input_image_path and "._" not in input_image_path:
-        #print(input_image_path)
-
-        # Call registration function
-        try:        
-            moving_image = itk.imread(input_image_path, itk.F)
-            result_image, result_transform_parameters = itk.elastix_registration_method(
-                fixed_image, moving_image,
-                parameter_object=parameter_object,
-                log_to_console=False)
-            image_id = input_image_path.split("/")[-1]
-            
-            itk.imwrite(result_image, output_path+"/"+rename_id+".nii.gz")
-                
-            print("Registered ", rename_id)
+        try:
+            return_code = subprocess.call("elastix -f "+fixed_image_path+" -m "+input_image_path+" -out "+\
+            output_path + " -p golden_image/mni_templates/Parameters_Rigid.txt", shell=True,\
+            stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            if return_code == 0:
+                print("Registered ", rename_id)
+                result_image = itk.imread(output_path+'/result.0.mhd',itk.F)
+                itk.imwrite(result_image, output_path+"/"+rename_id+".nii.gz")
+            else:
+                print("Error registering ", rename_id)
+                return_code = 1
         except:
-            print("Cannot transform", rename_id)
- 
+            print("is elastix installed?")
+            return_code = 1
+             
 # helper function to find the closest value in a list 
 def closest_value(input_list, input_value):
     arr = np.asarray(input_list)
     i = (np.abs(arr - input_value)).argmin()
     return arr[i], i
- 
-# function to compute the centile based on the TMT score and age         
-def find_centile(input_tmt, age, df):
-    val,i=closest_value(df['x'],age)
-    
-    centile = 'out of range'
-    if input_tmt<df.iloc[i]['X3']:
-        centile ='< 3'
-    if df.iloc[i]['X3']<=input_tmt<df.iloc[i]['X10']:
-        centile ='3-10'
-    if df.iloc[i]['X10']<=input_tmt<df.iloc[i]['X25']:
-        centile ='10-25'
-    if df.iloc[i]['X25']<=input_tmt<df.iloc[i]['X50']:
-        centile ='25-50'
-    if df.iloc[i]['X50']<=input_tmt<df.iloc[i]['X75']:
-        centile ='50-75'
-    if df.iloc[i]['X75']<=input_tmt<df.iloc[i]['X90']:
-        centile ='75-90'
-    if df.iloc[i]['X90']<=input_tmt<df.iloc[i]['X97']:
-        centile ='90-97'
-    if input_tmt>df.iloc[i]['X97']:
-        centile ='97>'
-    return centile
- 
+
 # function to filter the islands in the segmentation mask, to keep only the largest one      
 def filter_islands(muscle_seg):
     img = muscle_seg.astype('uint8')
@@ -171,7 +153,15 @@ def predict_itmt(age = 9, gender="M",
     # load image
     threshold = 0.75
     alpha = 0.8 
-    os.environ['CUDA_VISIBLE_DEVICES'] = cuda_visible_devices
+    
+    print( "CUDA_VISIBLE_DEVICES:", cuda_visible_devices)
+    physical_devices = tf.config.experimental.list_physical_devices('GPU')
+
+    if len(physical_devices) == 0:
+        physical_devices = tf.config.experimental.list_physical_devices('CPU')
+    else:   
+        config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        
     image, affine = load_nii(img_path)
 
     # path to store registered image in
@@ -183,7 +173,7 @@ def predict_itmt(age = 9, gender="M",
     # register image to MNI template
     golden_file_path = select_template_based_on_age(age)
     print("Registering to template:", golden_file_path)
-    register_to_template(img_path, new_path_to, golden_file_path,"registered.nii.gz", create_subfolder=False)
+    register_to_template_cmd(img_path, new_path_to, golden_file_path,"registered.nii.gz", create_subfolder=False)
 
     # enhance and zscore normalize image
     if not os.path.exists(new_path_to+"/no_z"):
@@ -330,49 +320,46 @@ def predict_itmt(age = 9, gender="M",
     cv2.imwrite(path_to+"/"+patient_id+"_mask.png", result)
             
     # rescale for the unet
-    infer_seg_array_2d_1 = rescale(muscle_seg_1[0],1/scaling_factor)
-    infer_seg_array_2d_2 = rescale(muscle_seg_2[0],1/scaling_factor)
     infer_seg_array_2d_1_filtered = rescale(muscle_seg_1_filtered,1/scaling_factor)
     infer_seg_array_2d_2_filtered = rescale(muscle_seg_2_filtered,1/scaling_factor)
 
     # save to 3d
-    infer_seg_array_3d_1[:,:,slice_label] = np.pad(infer_seg_array_2d_1[:,:,0],[[0,0],[15,21]],'constant',constant_values=0)
-    infer_seg_array_3d_2[:,:,slice_label] = np.pad(infer_seg_array_2d_2[:,:,0],[[0,0],[15,21]],'constant',constant_values=0)
     infer_seg_array_3d_1_filtered[:,:,slice_label] = np.pad(infer_seg_array_2d_1_filtered[:,:,0],[[0,0],[15,21]],'constant',constant_values=0)
     infer_seg_array_3d_2_filtered[:,:,slice_label] = np.pad(infer_seg_array_2d_2_filtered[:,:,0],[[0,0],[15,21]],'constant',constant_values=0)
                 
     concated = np.concatenate((infer_seg_array_2d_1_filtered[:100,:,0],infer_seg_array_2d_2_filtered[100:,:,0]),axis=0)    
     infer_seg_array_3d_merged_filtered[:,:,slice_label] = np.pad(concated,[[0,0],[15,21]],'constant',constant_values=0)
-
-    ## calculate TM          
-    infer_seg_array_2d_1 = rescale(muscle_seg_1[0],1/scaling_factor)
-    infer_seg_array_2d_2 = rescale(muscle_seg_2[0],1/scaling_factor)
-
-    infer_seg_array_3d_1[:,:,slice_label] = np.pad(infer_seg_array_2d_1[:,:,0],[[0,0],[15,21]],'constant',constant_values=0)
-    infer_seg_array_3d_2[:,:,slice_label] = np.pad(infer_seg_array_2d_2[:,:,0],[[0,0],[15,21]],'constant',constant_values=0)
+    
 
     objL_pred_minf_line, objR_pred_minf_line, objL_pred_minf, objR_pred_minf = 0,0,0,0
                     
-    crop_line = compute_crop_line(image_array[:,15:-21,slice_label],infer_seg_array_2d_1,infer_seg_array_2d_2)
+    crop_line = compute_crop_line(image_array[:,15:-21,slice_label],infer_seg_array_2d_1_filtered,infer_seg_array_2d_2_filtered)
                     
-    if np.sum(infer_seg_array_3d_1[:100,:,slice_label])>2:
-        objL_pred_minf = round(Calculater(infer_seg_array_3d_1[:100,:,slice_label], edge=True).minf,2)
+    if np.sum(infer_seg_array_3d_1_filtered[:100,:,slice_label])>2:
+        objL_pred_minf = round(Calculater(infer_seg_array_3d_1_filtered[:100,:,slice_label], edge=True).minf,2)
 
-    if np.sum(infer_seg_array_3d_2[100:,:,slice_label])>2:
-        objR_pred_minf = round(Calculater(infer_seg_array_3d_2[100:,:,slice_label], edge=True).minf,2)
+    if np.sum(infer_seg_array_3d_2_filtered[100:,:,slice_label])>2:
+        objR_pred_minf = round(Calculater(infer_seg_array_3d_2_filtered[100:,:,slice_label], edge=True).minf,2)
                 
-    CSA_PRED_TM1 = np.sum(infer_seg_array_3d_1[:100,:,slice_label])
-    CSA_PRED_TM2 = np.sum(infer_seg_array_3d_2[100:,:,slice_label])
+    CSA_PRED_TM1 = np.sum(infer_seg_array_3d_1_filtered[:100,:,slice_label])
+    CSA_PRED_TM2 = np.sum(infer_seg_array_3d_2_filtered[100:,:,slice_label])
                         
-    if np.sum(infer_seg_array_3d_1[:100,int(crop_line):,slice_label])>2:
-        objL_pred_minf_line = round(Calculater(infer_seg_array_3d_1[:100,int(crop_line):,slice_label], edge=True).minf,2)
+    if np.sum(infer_seg_array_3d_1_filtered[:100,int(crop_line):,slice_label])>2:
+        objL_pred_minf_line = round(Calculater(infer_seg_array_3d_1_filtered[:100,int(crop_line):,slice_label], edge=True).minf,2)
 
-    if np.sum(infer_seg_array_3d_2[100:,int(crop_line):,slice_label])>2:
-        objR_pred_minf_line = round(Calculater(infer_seg_array_3d_2[100:,int(crop_line):,slice_label], edge=True).minf,2)
+    if np.sum(infer_seg_array_3d_2_filtered[100:,int(crop_line):,slice_label])>2:
+        objR_pred_minf_line = round(Calculater(infer_seg_array_3d_2_filtered[100:,int(crop_line):,slice_label], edge=True).minf,2)
                     
-    CSA_PRED_TM1_line = np.sum(infer_seg_array_3d_1[:100,int(crop_line):,slice_label])
-    CSA_PRED_TM2_line = np.sum(infer_seg_array_3d_2[100:,int(crop_line):,slice_label])
-    input_tmt = (objL_pred_minf+objR_pred_minf)/2
+    CSA_PRED_TM1_line = np.sum(infer_seg_array_3d_1_filtered[:100,int(crop_line):,slice_label])
+    CSA_PRED_TM2_line = np.sum(infer_seg_array_3d_2_filtered[100:,int(crop_line):,slice_label])
+    
+    if objL_pred_minf > objR_pred_minf/2:
+        input_tmt = objL_pred_minf
+    elif objR_pred_minf>objL_pred_minf/2:
+        input_tmt = objR_pred_minf
+    else:
+        input_tmt = (objL_pred_minf+objR_pred_minf)/2
+        
     print("Age:",str(age)," Gender:",gender)
     print("iTMT[mm]:", input_tmt)
     
@@ -380,7 +367,17 @@ def predict_itmt(age = 9, gender="M",
     df_centile_boys = pd.read_csv(df_centile_boys_csv,header=0)
     df_centile_girls = pd.read_csv(df_centile_girls_csv,header=0)
     if gender =='F' or gender=='Female' or gender=='f' or gender=='F':
-        print("Centile:",find_centile(input_tmt, float(age), df_centile_girls))
+        centile = find_exact_centile(input_tmt, round(float(age),2), df_centile_girls)
+        
     else:
-        print("Centile:",find_centile(input_tmt, float(age), df_centile_boys))
+        centile = find_exact_centile(input_tmt, round(float(age),2), df_centile_boys)
+    print("Centile:",centile)  
+    # save results
+    result = np.array([patient_id,float(age),gender,
+                       input_tmt, centile,
+                       CSA_PRED_TM1,CSA_PRED_TM2])
+    
+    df_results = pd.DataFrame([result], columns=['PatientID','Age','Gender','iTMT','Centile','CSA_TM1','CSA_TM2'])
+    df_results.to_csv(path_to+"/"+patient_id+"_results.csv",index=False)
+                
                 

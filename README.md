@@ -1,6 +1,9 @@
 # Automated Deep Learning TM-segmentation project
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8361032.svg)](https://doi.org/10.5281/zenodo.8361032)
 
-Link to the centiles web-page: /link
+Link to the centiles web-page: [itmt-icsa.streamlit.app](https://itmt-icsa.streamlit.app/)
+
+We developed an automated deep learning pipeline to accurately measure temporalis muscle thickness (iTMT) from routine brain magnetic resonance imaging (MRI). We applied iTMT to 23,852 MRIs of healthy subjects, ages 4 through 35, and generated sex-specific iTMT normal growth charts with percentiles. We found that iTMT was associated with specific physiologic traits, including caloric intake, physical activity, sex hormone levels, and the presence of malignancy. We validated iTMT across multiple demographic groups and in children with brain tumors and demonstrated the feasibility for individualized longitudinal monitoring. The iTMT pipeline provides unprecedented insights into temporalis muscle growth during human development and enables the use of LMM tracking to inform clinical decision-making.
 
 **If you publish any work which uses this package, please cite the following publication**: /link
 
@@ -10,6 +13,42 @@ Link to the centiles web-page: /link
 ## Hardware requirements
 This repository was developed and tested on the following hardware:
 - Ubuntu 22.04.1 LTS, 1x Nvidia RTX A6000 GPU
+
+## Software requirements
+- Docker 
+
+OR
+
+- Python 3.9 (not required for docker version)
+- Conda (not required for docker version)
+- Elastix. Installation instructions below for Linux (for other OS please refer to the elastix [documentation](https://github.com/SuperElastix/elastix/releases/download/5.1.0/elastix-5.1.0-manual.pdf)). Elastix installation is not requred for the docker version: 
+    - Download and upzip [elastix](https://github.com/SuperElastix/elastix/releases/tag/5.1.0)
+    - Add to ~/.bashrc:
+    ```
+    export PATH=path/bin:$PATH
+    export LD_LIBRARY_PATH=path/lib:$LD_LIBRARY_PATH
+    ```
+    - Run `source ~/.bashrc`
+    - Make all files in bin executable: `chmod -R +x path/bin`
+    - Test: `elastix --help`
+
+## Quick Start - Docker(single MRI T1 inference, no GPU required), estimated time for set up: 5-10 minutes
+**Prerequisites: docker** 
+1. Clone repo `git clone`
+
+2. To create a docker:
+`cd docker`
+`docker build -t itmt -f Dockerfile . --no-cache`
+
+3. To run docker on example MRI:
+`docker run -it itmt`
+
+4. To run docker on your own MRI:
+`docker run -it -v local_folder_with_nii_path:/out itmt python3.9 ./main.py --age X --gender X --img_path out/file.nii --path_to out`
+
+- local_folder_with_nii_path is the path to the folder with your MRI and file.nii is the name of the MRI file; it is also the path to the output folder where the results will be saved.
+- in `--age X`, X should be replaced with the age of the subject in years
+- in `--gender X`, X should be M or F, a biological gender of the subject
 
 ## Quick Start - No Docker (single MRI T1 inference)
 **Prerequisites: conda, gpu** 
@@ -26,25 +65,7 @@ This repository was developed and tested on the following hardware:
 
 5. Download Weights from /link and place into /path
 
-5. For demo on TM pipeline launch jupyter notebook `example_notebooks/demo_notebook.ipynb` inside conda enviroment. Estimated inference time: 1-2 minutes
-
-## Quick Start - Docker(single MRI T1 inference), estimated time for set up: 5-10 minutes
-**Prerequisites: conda, gpu, docker** 
-1. Clone repo `git clone`
-
-2. To create a docker:
-`cd docker`
-`docker build -t itmt -f Dockerfile . --no-cache`
-
-3. To run docker on example MRI:
-`docker run --gpus all -it itmt`
-
-4. To run docker on your own MRI:
-`docker run -it --gpus all -v local_folder_with_nii_path:/out itmt python3.9 ./main.py --age X --gender X --img_path out/file.nii --path_to out --cuda_visible_devices X`
-- local_folder_with_nii_path is the path to the folder with your MRI and file.nii is the name of the MRI file; it is also the path to the output folder where the results will be saved.
-- in `--age X`, X should be replaced with the age of the subject in years
-- in `--gender X`, X should be M or F, a biological gender of the subject
-- in `--cuda_visible_devices X`, X should be replaced with the id of the GPU you want to use
+5. For demo on TM pipeline launch jupyter notebook `example_notebooks/demo_notebook.ipynb` inside conda enviroment. Estimated inference time: 5 minutes
 
 ## To retrain on your own MRI dataset: 
 **Prerequisites: conda, gpu** 
@@ -84,24 +105,8 @@ This repository was developed and tested on the following hardware:
 * [ITKElastix](https://github.com/InsightSoftwareConsortium/ITKElastix)
 * [Feret](https://github.com/matthiasnwt/feret)
 
-### MIT License
+### LICENSE: CC BY-NC 4.0
+
+This work is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License.
+To view a copy of this license, visit <http://creativecommons.org/licenses/by-nc/4.0/> or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
 Copyright (c) [2023] [Automated Deep Learning TM-segmentation project]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-

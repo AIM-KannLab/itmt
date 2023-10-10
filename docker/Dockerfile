@@ -24,6 +24,13 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
 
 RUN python3.9 -c "import tensorflow"
 
+COPY elastix-5.1.0-linux /elastix-5.1.0-linux
+RUN chmod +x /elastix-5.1.0-linux/bin/elastix
+ENV PATH="/elastix-5.1.0-linux/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/elastix-5.1.0-linux/lib:${LD_LIBRARY_PATH}"
+# reload bashrc
+RUN ["/bin/bash", "-c", "source /root/.bashrc"]
+
 COPY scripts /scripts
 COPY golden_image /golden_image
 COPY model_weights /model_weights
@@ -34,5 +41,4 @@ COPY data data/
 COPY main.py /
 COPY predict.py /
 COPY settings.py /
-COPY compute_population_pred.py /
 CMD [ "python3.9", "./main.py" ]
