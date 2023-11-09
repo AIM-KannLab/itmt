@@ -5,7 +5,7 @@ Link to the centiles web-page: [itmt-icsa.streamlit.app](https://itmt-icsa.strea
 
 We developed an automated deep learning pipeline to accurately measure temporalis muscle thickness (iTMT) from routine brain magnetic resonance imaging (MRI). We applied iTMT to 23,852 MRIs of healthy subjects, ages 4 through 35, and generated sex-specific iTMT normal growth charts with percentiles. We found that iTMT was associated with specific physiologic traits, including caloric intake, physical activity, sex hormone levels, and the presence of malignancy. We validated iTMT across multiple demographic groups and in children with brain tumors and demonstrated the feasibility for individualized longitudinal monitoring. The iTMT pipeline provides unprecedented insights into temporalis muscle growth during human development and enables the use of LMM tracking to inform clinical decision-making.
 
-**If you publish any work which uses this package, please cite the following publication**: /link
+**If you publish any work which uses this package, please cite the following publication**: [doi.org/10.1038/s41467-023-42501-1](https://doi.org/10.1038/s41467-023-42501-1)
 
 ![Main figure](pics/main_image.png)
 **Not intended for clinical use.**
